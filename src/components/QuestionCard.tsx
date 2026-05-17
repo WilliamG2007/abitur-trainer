@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { Question } from '../data/questions'
+import type { Question } from '../types/question'
 import { useProgress } from '../context/ProgressContext'
 import { gradeWithClaude } from '../lib/gradeWithClaude'
 import type { GradingResult } from '../lib/gradeWithClaude'
@@ -68,8 +68,8 @@ export default function QuestionCard({
     }
   }
 
-  const handleScoreConfirmed = (score: number) => {
-    recordAttempt(question.id, score, question.max_points)
+  const handleScoreConfirmed = (score: number, feedback: string) => {
+    recordAttempt(question.id, score, question.max_points, feedback)
     if (onNext) setTimeout(onNext, 300)
   }
 

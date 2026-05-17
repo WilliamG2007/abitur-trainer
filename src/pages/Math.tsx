@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { TOPICS, QUESTIONS_PER_SUBTOPIC, getSubtopicQuestions } from '../data/questions'
-import type { Topic } from '../data/questions'
+import { TOPICS, QUESTIONS_PER_SUBTOPIC } from '../data/topics'
+import type { Topic } from '../data/topics'
+import type { Question } from '../types/question'
+import { useQuestions } from '../hooks/useQuestions'
 import { useProgress } from '../context/ProgressContext'
 import QuestionCard from '../components/QuestionCard'
 
 // ---------------------------------------------------------------------------
-// View state (discriminated union – easy to extend)
+// View state (discriminated union)
 // ---------------------------------------------------------------------------
 type View =
   | { mode: 'topics' }
@@ -75,7 +77,13 @@ const TOPIC_ICONS: Record<Topic, string> = {
 // ---------------------------------------------------------------------------
 // Topics view
 // ---------------------------------------------------------------------------
-function TopicsView({ onSelectTopic }: { onSelectTopic: (id: Topic) => void }) {
+function TopicsView({
+  questions,
+  onSelectTopic,
+}: {
+  questions: Question[]
+  onSelectTopic: (id: Topic) => void
+}) {
   const { getSubtopicProgress } = useProgress()
 
   return (
@@ -94,9 +102,7 @@ function TopicsView({ onSelectTopic }: { onSelectTopic: (id: Topic) => void }) {
         {TOPICS.map((topic) => {
           const accent = TOPIC_ACCENT[topic.id]
           const allQuestionIds = topic.subtopics.flatMap((s) =>
-            getSubtopicQuestions(s)
-              .filter((q) => !q.locked)
-              .map((q) => q.id),
+            questions.filter((q) => q.subtopic === s && !q.locked).map((q) => q.id),
           )
           const { attempted, total } = getSubtopicProgress('', allQuestionIds)
 
@@ -113,8 +119,8 @@ function TopicsView({ onSelectTopic }: { onSelectTopic: (id: Topic) => void }) {
 
               <ul className="space-y-1">
                 {topic.subtopics.map((sub) => {
-                  const subIds = getSubtopicQuestions(sub)
-                    .filter((q) => !q.locked)
+                  const subIds = questions
+                    .filter((q) => q.subtopic === sub && !q.locked)
                     .map((q) => q.id)
                   const prog = getSubtopicProgress(sub, subIds)
                   return (
@@ -157,10 +163,12 @@ function TopicsView({ onSelectTopic }: { onSelectTopic: (id: Topic) => void }) {
 // ---------------------------------------------------------------------------
 function SubtopicsView({
   topicId,
+  questions,
   onSelectSubtopic,
   onBack,
 }: {
   topicId: Topic
+  questions: Question[]
   onSelectSubtopic: (subtopic: string, idx: number) => void
   onBack: () => void
 }) {
@@ -171,10 +179,7 @@ function SubtopicsView({
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center gap-3">
-        <button
-          onClick={onBack}
-          className="text-sm text-slate-500 hover:text-white"
-        >
+        <button onClick={onBack} className="text-sm text-slate-500 hover:text-white">
           ← Zurück
         </button>
         <span className={`text-lg ${accent.text}`}>{TOPIC_ICONS[topicId]}</span>
@@ -183,16 +188,13 @@ function SubtopicsView({
 
       <div className="flex flex-col gap-3">
         {topic.subtopics.map((sub) => {
-          const qs = getSubtopicQuestions(sub)
+          const qs = questions.filter((q) => q.subtopic === sub)
           const unlockedIds = qs.filter((q) => !q.locked).map((q) => q.id)
           const { attempted } = getSubtopicProgress(sub, unlockedIds)
           const pct = (attempted / QUESTIONS_PER_SUBTOPIC) * 100
 
           return (
-            <div
-              key={sub}
-              className="rounded-xl border border-white/10 bg-surface p-4"
-            >
+            <div key={sub} className="rounded-xl border border-white/10 bg-surface p-4">
               <div className="mb-3 flex items-center justify-between gap-4">
                 <h3 className="font-medium text-white">{sub}</h3>
                 <span className="text-xs text-slate-500">
@@ -200,15 +202,13 @@ function SubtopicsView({
                 </span>
               </div>
 
-              {/* Progress bar */}
               <div className="mb-3 h-1 w-full overflow-hidden rounded-full bg-white/5">
                 <div
-                  className={`h-full rounded-full bg-indigo-500 transition-all`}
+                  className="h-full rounded-full bg-indigo-500 transition-all"
                   style={{ width: `${pct}%` }}
                 />
               </div>
 
-              {/* Question dots */}
               <div className="mb-3 flex flex-wrap gap-1.5">
                 {qs.map((q, idx) => (
                   <QuestionDot
@@ -222,7 +222,6 @@ function SubtopicsView({
 
               <button
                 onClick={() => {
-                  // Jump to first unlocked question
                   const firstUnlockedIdx = qs.findIndex((q) => !q.locked)
                   onSelectSubtopic(sub, firstUnlockedIdx >= 0 ? firstUnlockedIdx : 0)
                 }}
@@ -245,16 +244,18 @@ function QuestionView({
   topicId,
   subtopic,
   questionIdx,
+  questions,
   onNavigate,
   onBack,
 }: {
   topicId: Topic
   subtopic: string
   questionIdx: number
+  questions: Question[]
   onNavigate: (idx: number) => void
   onBack: () => void
 }) {
-  const qs = getSubtopicQuestions(subtopic)
+  const qs = questions.filter((q) => q.subtopic === subtopic)
   const question = qs[questionIdx]
   const accent = TOPIC_ACCENT[topicId]
 
@@ -266,7 +267,7 @@ function QuestionView({
         <button onClick={onBack} className="text-sm text-slate-500 hover:text-white">
           ← Zurück
         </button>
-        <span className={`text-sm ${accent.text}`}>{TOPICS.find(t => t.id === topicId)?.label}</span>
+        <span className={`text-sm ${accent.text}`}>{TOPICS.find((t) => t.id === topicId)?.label}</span>
         <span className="text-slate-600">/</span>
         <span className="text-sm text-slate-400">{subtopic}</span>
       </div>
@@ -300,14 +301,26 @@ function QuestionView({
 // ---------------------------------------------------------------------------
 export default function Math() {
   const [view, setView] = useState<View>({ mode: 'topics' })
+  const { questions, loading, error } = useQuestions('math')
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <div className="h-7 w-7 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="mx-auto max-w-4xl px-6 py-12">
+        <p className="text-sm text-red-400">Fehler beim Laden der Aufgaben: {error}</p>
+      </div>
+    )
+  }
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-12">
-      {view.mode !== 'topics' && view.mode !== 'subtopics' && (
-        <div /> /* breadcrumb handled inside views */
-      )}
-
-      {/* Top-level back link to landing */}
       <div className="mb-6">
         {view.mode === 'topics' && (
           <Link to="/" className="text-sm text-slate-500 hover:text-white">
@@ -318,6 +331,7 @@ export default function Math() {
 
       {view.mode === 'topics' && (
         <TopicsView
+          questions={questions}
           onSelectTopic={(topicId) => setView({ mode: 'subtopics', topicId })}
         />
       )}
@@ -325,6 +339,7 @@ export default function Math() {
       {view.mode === 'subtopics' && (
         <SubtopicsView
           topicId={view.topicId}
+          questions={questions}
           onBack={() => setView({ mode: 'topics' })}
           onSelectSubtopic={(subtopic, idx) =>
             setView({ mode: 'question', topicId: view.topicId, subtopic, questionIdx: idx })
@@ -337,6 +352,7 @@ export default function Math() {
           topicId={view.topicId}
           subtopic={view.subtopic}
           questionIdx={view.questionIdx}
+          questions={questions}
           onBack={() => setView({ mode: 'subtopics', topicId: view.topicId })}
           onNavigate={(idx) =>
             setView({ mode: 'question', topicId: view.topicId, subtopic: view.subtopic, questionIdx: idx })

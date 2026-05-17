@@ -4,7 +4,7 @@ interface ResultsPanelProps {
   loading: boolean
   error: string | null
   result: GradingResult | null
-  onScoreConfirmed: (score: number) => void
+  onScoreConfirmed: (score: number, feedback: string) => void
 }
 
 export default function ResultsPanel({ loading, error, result, onScoreConfirmed }: ResultsPanelProps) {
@@ -54,7 +54,7 @@ export default function ResultsPanel({ loading, error, result, onScoreConfirmed 
       </div>
 
       <button
-        onClick={() => onScoreConfirmed(score)}
+        onClick={() => onScoreConfirmed(score, feedback)}
         className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-500"
       >
         Ergebnis speichern &amp; weiter
