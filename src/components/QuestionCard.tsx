@@ -6,7 +6,7 @@ import type { GradingResult } from '../lib/gradeWithClaude'
 import DrawingCanvas from './DrawingCanvas'
 import UploadBox from './UploadBox'
 import ResultsPanel from './ResultsPanel'
-import MathRenderer from './MathRenderer'
+import LatexRenderer from './LatexRenderer'
 
 interface QuestionCardProps {
   question: Question
@@ -104,10 +104,22 @@ export default function QuestionCard({
       </div>
 
       {/* Question text */}
-      <div className="rounded-xl border border-gray-200 bg-surface p-5 dark:border-white/10">
+      <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-white/10 dark:bg-surface">
         <p className="text-sm leading-relaxed text-gray-800 dark:text-slate-200">
-          <MathRenderer formula={question.text} />
+          <LatexRenderer>{question.text}</LatexRenderer>
         </p>
+        {question.images && question.images.length > 0 && (
+          <div className="mt-4 flex flex-wrap gap-3">
+            {question.images.map((img) => (
+              <img
+                key={img}
+                src={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/question-images/${img}`}
+                alt=""
+                className="max-h-72 rounded-lg border border-gray-200 object-contain dark:border-white/10"
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Input toggle */}
