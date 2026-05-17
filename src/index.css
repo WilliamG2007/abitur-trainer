@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+  scroll-behavior: smooth;
+}
+
 /* CSS variables — light mode defaults, .dark overrides */
 :root {
   --color-surface: 255 255 255;   /* white */

@@ -20,13 +20,11 @@ function ThemeToggle() {
       className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition-colors hover:border-gray-300 hover:text-gray-900 dark:border-white/10 dark:text-slate-400 dark:hover:border-white/20 dark:hover:text-white"
     >
       {theme === 'dark' ? (
-        // Sun icon — click to go light
         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <circle cx="12" cy="12" r="5" />
           <path strokeLinecap="round" d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
         </svg>
       ) : (
-        // Moon icon — click to go dark
         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
         </svg>
@@ -82,25 +80,13 @@ function UserMenu() {
             <p className="truncate text-xs text-gray-500 dark:text-slate-500">{user?.email}</p>
           </div>
           <div className="p-1">
-            <Link
-              to="/profile"
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-white"
-            >
+            <Link to="/profile" onClick={() => setOpen(false)} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-white">
               <span>👤</span> Profil
             </Link>
-            <Link
-              to="/analytics"
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-white"
-            >
+            <Link to="/analytics" onClick={() => setOpen(false)} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-white">
               <span>📊</span> Statistiken
             </Link>
-            <Link
-              to="/settings"
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-white"
-            >
+            <Link to="/settings" onClick={() => setOpen(false)} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-white">
               <span>⚙️</span> Einstellungen
             </Link>
             <button
@@ -116,7 +102,28 @@ function UserMenu() {
   )
 }
 
+function GuestButtons() {
+  return (
+    <div className="flex items-center gap-2">
+      <Link
+        to="/login"
+        className="rounded-lg px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900 dark:text-slate-300 dark:hover:text-white"
+      >
+        Anmelden
+      </Link>
+      <Link
+        to="/register"
+        className="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-indigo-500"
+      >
+        Registrieren
+      </Link>
+    </div>
+  )
+}
+
 export default function Navbar() {
+  const { user, loading } = useAuth()
+
   return (
     <header className="sticky top-0 z-50 border-b border-gray-200 bg-base/80 backdrop-blur-md dark:border-white/10">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
@@ -127,27 +134,30 @@ export default function Navbar() {
           Abitur<span className="text-indigo-500 dark:text-indigo-400">Trainer</span>
         </NavLink>
 
-        <nav className="hidden items-center gap-1 md:flex">
-          {links.map(({ to, label }) => (
-            <NavLink
-              key={to}
-              to={to}
-              className={({ isActive }) =>
-                `rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-indigo-600 text-white'
-                    : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white'
-                }`
-              }
-            >
-              {label}
-            </NavLink>
-          ))}
-        </nav>
+        {/* Subject nav — only shown when logged in */}
+        {user && (
+          <nav className="hidden items-center gap-1 md:flex">
+            {links.map(({ to, label }) => (
+              <NavLink
+                key={to}
+                to={to}
+                className={({ isActive }) =>
+                  `rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'bg-indigo-600 text-white'
+                      : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white'
+                  }`
+                }
+              >
+                {label}
+              </NavLink>
+            ))}
+          </nav>
+        )}
 
         <div className="flex items-center gap-2">
           <ThemeToggle />
-          <UserMenu />
+          {!loading && (user ? <UserMenu /> : <GuestButtons />)}
         </div>
       </div>
     </header>
