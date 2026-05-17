@@ -6,19 +6,19 @@ html {
   scroll-behavior: smooth;
 }
 
-/* CSS variables — light mode defaults, .dark overrides */
+/* Light mode defaults — .dark overrides */
 :root {
-  --color-surface: 255 255 255;   /* white */
-  --color-base: 249 250 251;      /* gray-50 */
+  --color-surface: #ffffff;
+  --color-base: #f9fafb;
 }
 .dark {
-  --color-surface: 26 29 39;      /* #1a1d27 */
-  --color-base: 15 17 23;         /* #0f1117 */
+  --color-surface: #1a1d27;
+  --color-base: #0f1117;
 }
 
 @layer base {
   body {
-    background-color: rgb(var(--color-base));
+    background-color: var(--color-base);
     color: #111827;
     font-family: 'Inter', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;

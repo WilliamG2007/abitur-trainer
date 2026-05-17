@@ -5,9 +5,9 @@ export default {
   theme: {
     extend: {
       colors: {
-        // CSS-var driven — automatically adapt to .dark class
-        surface: 'rgb(var(--color-surface) / <alpha-value>)',
-        base: 'rgb(var(--color-base) / <alpha-value>)',
+        // Plain var() — no opacity modifier needed, avoids PostCSS alpha-value issues
+        surface: 'var(--color-surface)',
+        base: 'var(--color-base)',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],

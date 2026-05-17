@@ -22,7 +22,7 @@ export default function SubjectCard({
       className={`group relative flex flex-col gap-4 rounded-xl border p-6 transition-all duration-200 ${
         available
           ? 'cursor-pointer border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50 dark:border-white/10 dark:bg-surface dark:hover:border-white/20 dark:hover:bg-white/5'
-          : 'cursor-not-allowed border-gray-100 bg-gray-50 opacity-50 dark:border-white/5 dark:bg-surface/50'
+          : 'cursor-not-allowed border-gray-100 bg-gray-50 opacity-50 dark:border-white/5 dark:bg-[#1a1d27]'
       }`}
     >
       <div className={`flex h-12 w-12 items-center justify-center rounded-lg text-2xl ${accent}`}>

@@ -125,7 +125,7 @@ export default function Navbar() {
   const { user, loading } = useAuth()
 
   return (
-    <header className="sticky top-0 z-50 border-b border-gray-200 bg-base/80 backdrop-blur-md dark:border-white/10">
+    <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/80 backdrop-blur-md dark:border-white/10 dark:bg-[#0f1117]/80">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
         <NavLink to="/" className="flex items-center gap-2 text-lg font-bold tracking-tight text-gray-900 dark:text-white">
           <span className="flex h-7 w-7 items-center justify-center rounded-md bg-indigo-600 text-sm font-black text-white">
