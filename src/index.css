@@ -2,12 +2,26 @@
 @tailwind components;
 @tailwind utilities;
 
+/* CSS variables — light mode defaults, .dark overrides */
+:root {
+  --color-surface: 255 255 255;   /* white */
+  --color-base: 249 250 251;      /* gray-50 */
+}
+.dark {
+  --color-surface: 26 29 39;      /* #1a1d27 */
+  --color-base: 15 17 23;         /* #0f1117 */
+}
+
 @layer base {
   body {
-    background-color: #0f1117;
-    color: #e2e8f0;
+    background-color: rgb(var(--color-base));
+    color: #111827;
     font-family: 'Inter', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
+  }
+
+  .dark body {
+    color: #e2e8f0;
   }
 
   * {

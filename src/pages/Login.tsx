@@ -27,50 +27,48 @@ export default function Login() {
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-sm">
-        {/* Logo */}
         <div className="mb-8 flex flex-col items-center gap-2">
           <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600 text-lg font-black text-white">
             A
           </span>
-          <h1 className="text-xl font-bold text-white">
-            Abitur<span className="text-indigo-400">Trainer</span>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+            Abitur<span className="text-indigo-500 dark:text-indigo-400">Trainer</span>
           </h1>
-          <p className="text-sm text-slate-500">Bayern Abitur · G9 Lehrplan</p>
+          <p className="text-sm text-gray-400 dark:text-slate-500">Bayern Abitur · G9 Lehrplan</p>
         </div>
 
-        {/* Card */}
-        <div className="rounded-2xl border border-white/10 bg-surface p-8">
-          <h2 className="mb-6 text-lg font-semibold text-white">Anmelden</h2>
+        <div className="rounded-2xl border border-gray-200 bg-surface p-8 dark:border-white/10">
+          <h2 className="mb-6 text-lg font-semibold text-gray-900 dark:text-white">Anmelden</h2>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-slate-400">E-Mail</label>
+              <label className="text-xs font-medium text-gray-500 dark:text-slate-400">E-Mail</label>
               <input
                 type="email"
                 required
                 autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-slate-600 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder-slate-600"
                 placeholder="deine@email.de"
               />
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-slate-400">Passwort</label>
+              <label className="text-xs font-medium text-gray-500 dark:text-slate-400">Passwort</label>
               <input
                 type="password"
                 required
                 autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-slate-600 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder-slate-600"
                 placeholder="••••••••"
               />
             </div>
 
             {error && (
-              <p className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs text-red-400">
+              <p className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs text-red-500 dark:text-red-400">
                 {error}
               </p>
             )}
@@ -85,9 +83,9 @@ export default function Login() {
           </form>
         </div>
 
-        <p className="mt-4 text-center text-sm text-slate-500">
+        <p className="mt-4 text-center text-sm text-gray-500 dark:text-slate-500">
           Noch kein Konto?{' '}
-          <Link to="/register" className="text-indigo-400 hover:text-indigo-300">
+          <Link to="/register" className="text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300">
             Registrieren
           </Link>
         </p>

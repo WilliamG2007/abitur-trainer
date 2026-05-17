@@ -41,7 +41,7 @@ export default function UploadBox({ onChange }: UploadBoxProps) {
   return (
     <div className="flex flex-col gap-2">
       {preview ? (
-        <div className="relative overflow-hidden rounded-lg border border-white/10" style={{ height: 280 }}>
+        <div className="relative overflow-hidden rounded-lg border border-gray-200 dark:border-white/10" style={{ height: 280 }}>
           <img src={preview} alt="Lösung" className="h-full w-full object-contain" />
         </div>
       ) : (
@@ -53,13 +53,13 @@ export default function UploadBox({ onChange }: UploadBoxProps) {
           className={`flex cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed transition-colors ${
             dragging
               ? 'border-indigo-500 bg-indigo-500/10'
-              : 'border-white/10 bg-[#0a0c13] hover:border-white/20'
+              : 'border-gray-200 bg-gray-50 hover:border-gray-300 dark:border-white/10 dark:bg-[#0a0c13] dark:hover:border-white/20'
           }`}
           style={{ height: 280 }}
         >
           <span className="text-3xl">📷</span>
-          <p className="text-sm text-slate-400">Foto hochladen oder hierher ziehen</p>
-          <p className="text-xs text-slate-600">PNG, JPG, HEIC</p>
+          <p className="text-sm text-gray-500 dark:text-slate-400">Foto hochladen oder hierher ziehen</p>
+          <p className="text-xs text-gray-400 dark:text-slate-600">PNG, JPG, HEIC</p>
         </div>
       )}
 
@@ -67,14 +67,14 @@ export default function UploadBox({ onChange }: UploadBoxProps) {
         {preview && (
           <button
             onClick={clear}
-            className="rounded-md border border-white/10 px-3 py-1.5 text-xs text-slate-400 transition-colors hover:border-white/20 hover:text-white"
+            className="rounded-md border border-gray-200 px-3 py-1.5 text-xs text-gray-500 transition-colors hover:border-gray-300 hover:text-gray-900 dark:border-white/10 dark:text-slate-400 dark:hover:border-white/20 dark:hover:text-white"
           >
             Löschen
           </button>
         )}
         <button
           onClick={() => inputRef.current?.click()}
-          className="rounded-md border border-white/10 px-3 py-1.5 text-xs text-slate-400 transition-colors hover:border-white/20 hover:text-white"
+          className="rounded-md border border-gray-200 px-3 py-1.5 text-xs text-gray-500 transition-colors hover:border-gray-300 hover:text-gray-900 dark:border-white/10 dark:text-slate-400 dark:hover:border-white/20 dark:hover:text-white"
         >
           {preview ? 'Anderes Bild' : 'Datei wählen'}
         </button>
