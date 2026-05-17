@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 
 const links = [
   { to: '/math', label: 'Mathematik' },
@@ -9,6 +10,8 @@ const links = [
 ]
 
 export default function Navbar() {
+  const { user, signOut } = useAuth()
+
   return (
     <header className="sticky top-0 z-50 border-b border-white/10 bg-base/80 backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
@@ -37,10 +40,20 @@ export default function Navbar() {
           ))}
         </nav>
 
-        {/* Mobile: simple label */}
-        <nav className="flex items-center gap-1 md:hidden">
-          <span className="text-xs text-slate-500">Bayern 2026</span>
-        </nav>
+        {/* User section */}
+        <div className="flex items-center gap-3">
+          {user && (
+            <span className="hidden text-xs text-slate-500 md:block truncate max-w-[160px]">
+              {user.email}
+            </span>
+          )}
+          <button
+            onClick={() => signOut()}
+            className="rounded-md border border-white/10 px-3 py-1.5 text-xs font-medium text-slate-400 transition-colors hover:border-white/20 hover:text-white"
+          >
+            Abmelden
+          </button>
+        </div>
       </div>
     </header>
   )
