@@ -1,15 +1,11 @@
 import Anthropic from '@anthropic-ai/sdk'
 
-const SYSTEM_PROMPT = `Du bist ein bayerischer Abitur Mathematik Korrektor. \
-Bewerte die handgeschriebene Schülerlösung anhand des \
-Erwartungshorizonts. Gib an: erreichte Punkte / maximale \
-Punkte, welche Teilaufgaben korrekt waren, wo Punkte \
-verloren wurden und warum. Sei präzise aber ermutigend.
-
-Beginne deine Antwort immer mit genau dieser Zeile (ersetze X und Y):
-PUNKTE: X/Y
-
-Danach folgt dein detailliertes Feedback.`
+const SYSTEM_PROMPT = `Du bist ein strenger aber fairer bayerischer Abitur Mathematik Korrektor.
+Bewerte ausschließlich nach dem Erwartungshorizont.
+Vergib Punkte NUR für mathematisch korrekte und vollständige Schritte.
+Eine falsche oder themenfremde Antwort bekommt 0 Punkte — keine Ausnahmen.
+Interpretiere keine Absichten, nur was tatsächlich auf dem Papier steht.
+Sei ehrlich über die Punktzahl, aber ermutigend im Erklärungstext.`
 
 export interface GradingResult {
   score: number
@@ -33,6 +29,24 @@ export async function gradeWithClaude(
   // Strip data-URL prefix → raw base64
   const base64 = imageDataUrl.replace(/^data:image\/\w+;base64,/, '')
 
+  const userText =
+    `Aufgabe:\n${questionText}\n\n` +
+    `Erwartungshorizont:\n${erwartungshorizont}\n\n` +
+    `Maximale Punktzahl: ${maxPoints} BE\n\n` +
+    `Bewerte die handgeschriebene Schülerlösung im Bild.\n` +
+    `Antworte in diesem Format:\n\n` +
+    `PUNKTE: X / ${maxPoints}\n\n` +
+    `TEILAUFGABEN:\n` +
+    `(a) X/X BE — [ein Satz was richtig/falsch war]\n` +
+    `(b) X/X BE — [ein Satz was richtig/falsch war]\n` +
+    `...\n\n` +
+    `FEHLER:\n` +
+    `- [konkreter Fehler 1]\n` +
+    `- [konkreter Fehler 2]\n\n` +
+    `HINWEISE:\n` +
+    `- [hilfreicher Tipp 1]\n` +
+    `- [hilfreicher Tipp 2]`
+
   const response = await client.messages.create({
     model: 'claude-sonnet-4-20250514',
     max_tokens: 1024,
@@ -47,7 +61,7 @@ export async function gradeWithClaude(
           },
           {
             type: 'text',
-            text: `Aufgabe (maximal ${maxPoints} Punkte):\n${questionText}\n\nErwartungshorizont:\n${erwartungshorizont}`,
+            text: userText,
           },
         ],
       },
@@ -56,9 +70,8 @@ export async function gradeWithClaude(
 
   const raw = response.content[0].type === 'text' ? response.content[0].text : ''
 
-  // Parse "PUNKTE: X/Y" from the first line
-  const firstLine = raw.split('\n')[0]
-  const match = firstLine.match(/PUNKTE:\s*(\d+)\s*\/\s*(\d+)/)
+  // Parse "PUNKTE: X / Y" (with or without spaces around slash)
+  const match = raw.match(/PUNKTE:\s*(\d+)\s*\/\s*\d+/)
   const score = match ? Math.min(parseInt(match[1], 10), maxPoints) : 0
   const feedback = raw.replace(/^PUNKTE:.*\n?/, '').trim()
 
