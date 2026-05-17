@@ -1,10 +1,11 @@
 import { useState, FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 
 export default function Profile() {
   const { user } = useAuth()
+  const navigate = useNavigate()
 
   const meta = user?.user_metadata ?? {}
   const [displayName, setDisplayName] = useState<string>(meta.display_name ?? '')
@@ -20,12 +21,24 @@ export default function Profile() {
     setSuccess(false)
     setError(null)
 
+    // Refresh the session first — the client can lose it after a page reload
+    const { data: { session }, error: sessionError } = await supabase.auth.refreshSession()
+    console.debug('[Profile] session after refresh:', session?.user?.id ?? null, sessionError?.message)
+
+    if (sessionError || !session) {
+      setError('Sitzung abgelaufen. Bitte erneut anmelden.')
+      setSaving(false)
+      setTimeout(() => navigate('/login'), 1500)
+      return
+    }
+
     const { error } = await supabase.auth.updateUser({
       data: { display_name: displayName.trim(), username: username.trim() },
     })
 
     setSaving(false)
     if (error) {
+      console.error('[Profile] updateUser error:', error.message)
       setError(error.message)
     } else {
       setSuccess(true)
