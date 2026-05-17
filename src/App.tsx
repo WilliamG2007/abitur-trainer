@@ -12,6 +12,7 @@ import History from './pages/History'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Profile from './pages/Profile'
+import Settings from './pages/Settings'
 
 // ---------------------------------------------------------------------------
 // Protected layout – redirects to /login if not authenticated
@@ -61,6 +62,7 @@ export default function App() {
             <Route path="/physik" element={<Physics />} />
             <Route path="/geschichte" element={<History />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/settings" element={<Settings />} />
           </Route>
         </Routes>
       </ProgressProvider>

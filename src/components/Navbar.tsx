@@ -69,6 +69,13 @@ function UserMenu() {
             >
               <span>👤</span> Profil
             </Link>
+            <Link
+              to="/settings"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
+            >
+              <span>⚙️</span> Einstellungen
+            </Link>
             <button
               onClick={() => { setOpen(false); signOut() }}
               className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-300 transition-colors hover:bg-white/5 hover:text-white"

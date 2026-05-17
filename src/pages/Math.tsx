@@ -21,10 +21,14 @@ type View =
 function QuestionDot({
   state,
   locked,
+  score,
+  maxPoints,
   onClick,
 }: {
   state: 'unattempted' | 'full' | 'partial' | 'zero' | 'locked'
   locked?: boolean
+  score?: number
+  maxPoints?: number
   onClick?: () => void
 }) {
   const colors = {
@@ -35,10 +39,20 @@ function QuestionDot({
     zero: 'bg-red-500 hover:bg-red-400 cursor-pointer',
   }
   const key = locked ? 'locked' : state
+
+  let tooltip: string
+  if (locked) {
+    tooltip = 'Gesperrt'
+  } else if (state === 'unattempted') {
+    tooltip = 'Noch nicht bearbeitet'
+  } else {
+    tooltip = `${score ?? 0} / ${maxPoints ?? '?'} Punkte`
+  }
+
   return (
     <button
       onClick={locked ? undefined : onClick}
-      title={locked ? 'Gesperrt' : state}
+      title={tooltip}
       className={`h-3 w-3 rounded-full transition-colors ${colors[key]}`}
     />
   )
@@ -172,7 +186,7 @@ function SubtopicsView({
   onSelectSubtopic: (subtopic: string, idx: number) => void
   onBack: () => void
 }) {
-  const { getQuestionState, getSubtopicProgress } = useProgress()
+  const { attempts, getQuestionState, getSubtopicProgress } = useProgress()
   const topic = TOPICS.find((t) => t.id === topicId)!
   const accent = TOPIC_ACCENT[topicId]
 
@@ -210,14 +224,19 @@ function SubtopicsView({
               </div>
 
               <div className="mb-3 flex flex-wrap gap-1.5">
-                {qs.map((q, idx) => (
+                {qs.map((q, idx) => {
+                  const attempt = attempts[q.id]
+                  return (
                   <QuestionDot
                     key={q.id}
                     locked={q.locked}
                     state={q.locked ? 'locked' : getQuestionState(q.id, q.max_points)}
+                    score={attempt?.score}
+                    maxPoints={attempt?.maxPoints ?? q.max_points}
                     onClick={() => onSelectSubtopic(sub, idx)}
                   />
-                ))}
+                  )
+                })}
               </div>
 
               <button
