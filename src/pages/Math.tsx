@@ -6,6 +6,7 @@ import type { Question } from '../types/question'
 import { useQuestions } from '../hooks/useQuestions'
 import { useProgress } from '../context/ProgressContext'
 import QuestionCard from '../components/QuestionCard'
+import LearnMode from '../components/LearnMode'
 
 // ---------------------------------------------------------------------------
 // View state (discriminated union)
@@ -257,7 +258,7 @@ function SubtopicsView({
 }
 
 // ---------------------------------------------------------------------------
-// Question view
+// Question view (with Lernen / Üben tabs)
 // ---------------------------------------------------------------------------
 function QuestionView({
   topicId,
@@ -274,14 +275,20 @@ function QuestionView({
   onNavigate: (idx: number) => void
   onBack: () => void
 }) {
+  const { attempts } = useProgress()
   const qs = questions.filter((q) => q.subtopic === subtopic)
   const question = qs[questionIdx]
   const accent = TOPIC_ACCENT[topicId]
 
+  // Default to Üben if any question in this subtopic has been attempted
+  const hasAnyAttempt = qs.some((q) => !q.locked && attempts[q.id] !== undefined)
+  const [tab, setTab] = useState<'lernen' | 'ueben'>(hasAnyAttempt ? 'ueben' : 'lernen')
+
   if (!question) return null
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-5">
+      {/* Breadcrumb */}
       <div className="flex items-center gap-3">
         <button onClick={onBack} className="text-sm text-slate-500 hover:text-white">
           ← Zurück
@@ -291,7 +298,34 @@ function QuestionView({
         <span className="text-sm text-slate-400">{subtopic}</span>
       </div>
 
-      {question.locked ? (
+      {/* Tab bar */}
+      <div className="flex gap-1 rounded-lg border border-white/10 bg-white/[0.03] p-1 w-fit">
+        <button
+          onClick={() => setTab('lernen')}
+          className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
+            tab === 'lernen'
+              ? 'bg-indigo-600 text-white'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          Lernen
+        </button>
+        <button
+          onClick={() => setTab('ueben')}
+          className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
+            tab === 'ueben'
+              ? 'bg-indigo-600 text-white'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          Üben
+        </button>
+      </div>
+
+      {/* Tab content */}
+      {tab === 'lernen' ? (
+        <LearnMode subtopic={subtopic} />
+      ) : question.locked ? (
         <div className="flex flex-col items-center gap-4 rounded-xl border border-white/10 bg-surface py-16 text-center">
           <span className="text-4xl">🔒</span>
           <h2 className="font-semibold text-white">Gesperrte Aufgabe</h2>
@@ -368,6 +402,7 @@ export default function Math() {
 
       {view.mode === 'question' && (
         <QuestionView
+          key={view.subtopic}
           topicId={view.topicId}
           subtopic={view.subtopic}
           questionIdx={view.questionIdx}
