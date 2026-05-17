@@ -1,4 +1,5 @@
 import { Navigate, Outlet, Route, Routes } from 'react-router-dom'
+import { Analytics } from '@vercel/analytics/react'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { ProgressProvider } from './context/ProgressContext'
 import Navbar from './components/Navbar'
@@ -45,6 +46,7 @@ export default function App() {
   return (
     <AuthProvider>
       <ProgressProvider>
+        <Analytics />
         <Routes>
           {/* Public */}
           <Route path="/login" element={<Login />} />
