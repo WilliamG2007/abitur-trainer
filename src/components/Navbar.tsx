@@ -70,6 +70,13 @@ function UserMenu() {
               <span>👤</span> Profil
             </Link>
             <Link
+              to="/analytics"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
+            >
+              <span>📊</span> Statistiken
+            </Link>
+            <Link
               to="/settings"
               onClick={() => setOpen(false)}
               className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-300 transition-colors hover:bg-white/5 hover:text-white"

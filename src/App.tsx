@@ -1,5 +1,5 @@
 import { Navigate, Outlet, Route, Routes } from 'react-router-dom'
-import { Analytics } from '@vercel/analytics/react'
+import { Analytics as VercelAnalytics } from '@vercel/analytics/react'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { ProgressProvider } from './context/ProgressContext'
 import Navbar from './components/Navbar'
@@ -13,6 +13,7 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import Profile from './pages/Profile'
 import Settings from './pages/Settings'
+import Analytics from './pages/Analytics'
 
 // ---------------------------------------------------------------------------
 // Protected layout – redirects to /login if not authenticated
@@ -47,7 +48,7 @@ export default function App() {
   return (
     <AuthProvider>
       <ProgressProvider>
-        <Analytics />
+        <VercelAnalytics />
         <Routes>
           {/* Public */}
           <Route path="/login" element={<Login />} />
@@ -63,6 +64,7 @@ export default function App() {
             <Route path="/geschichte" element={<History />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/analytics" element={<Analytics />} />
           </Route>
         </Routes>
       </ProgressProvider>

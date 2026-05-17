@@ -1,255 +1,29 @@
+import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { useStats } from '../hooks/useStats'
-import { TOPICS } from '../data/topics'
-import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-} from 'recharts'
+import { useAnalytics } from '../hooks/useAnalytics'
 
-// ---------------------------------------------------------------------------
-// Skeleton helpers
-// ---------------------------------------------------------------------------
 function Skeleton({ className }: { className?: string }) {
   return <div className={`animate-pulse rounded bg-white/5 ${className}`} />
 }
 
-function StatCardSkeleton() {
-  return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-      <Skeleton className="mb-2 h-3 w-20" />
-      <Skeleton className="h-7 w-12" />
-    </div>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Stat card
-// ---------------------------------------------------------------------------
 function StatCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   return (
     <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
       <p className="mb-1 text-xs font-medium text-slate-500">{label}</p>
-      <p className="text-2xl font-bold text-white leading-none">{value}</p>
+      <p className="text-2xl font-bold leading-none text-white">{value}</p>
       {sub && <p className="mt-1 text-xs text-slate-600">{sub}</p>}
     </div>
   )
 }
 
-// ---------------------------------------------------------------------------
-// Score bar chart
-// ---------------------------------------------------------------------------
-function ScoreChart({ buckets }: { buckets: { label: string; count: number }[] }) {
-  return (
-    <div className="rounded-xl border border-white/10 bg-surface p-5">
-      <p className="mb-4 text-xs font-medium uppercase tracking-wide text-slate-500">
-        Score-Verteilung
-      </p>
-      <ResponsiveContainer width="100%" height={140}>
-        <BarChart data={buckets} barCategoryGap="28%">
-          <XAxis
-            dataKey="label"
-            tick={{ fill: '#64748b', fontSize: 10 }}
-            axisLine={false}
-            tickLine={false}
-          />
-          <YAxis
-            allowDecimals={false}
-            tick={{ fill: '#64748b', fontSize: 10 }}
-            axisLine={false}
-            tickLine={false}
-            width={20}
-          />
-          <Tooltip
-            cursor={{ fill: 'rgba(255,255,255,0.03)' }}
-            contentStyle={{
-              background: '#1a1d27',
-              border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: 8,
-              fontSize: 12,
-            }}
-            labelStyle={{ color: '#94a3b8' }}
-            itemStyle={{ color: '#e2e8f0' }}
-          />
-          <Bar dataKey="count" fill="#6366f1" radius={[4, 4, 0, 0]} />
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Topic progress bars
-// ---------------------------------------------------------------------------
-function TopicProgressBar({
-  label,
-  attempted,
-  total,
-  avgPct,
-  accentClass,
-}: {
-  label: string
-  attempted: number
-  total: number
-  avgPct: number
-  accentClass: string
-}) {
-  const fillPct = total > 0 ? (attempted / total) * 100 : 0
-  return (
-    <div>
-      <div className="mb-1 flex items-center justify-between gap-2">
-        <span className="text-xs text-slate-300">{label}</span>
-        <span className="text-xs text-slate-500">
-          {attempted}/{total}
-          {attempted > 0 && (
-            <span className="ml-2 text-slate-600">Ø {avgPct}%</span>
-          )}
-        </span>
-      </div>
-      <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/5">
-        <div
-          className={`h-full rounded-full transition-all ${accentClass}`}
-          style={{ width: `${fillPct}%` }}
-        />
-      </div>
-    </div>
-  )
-}
-
-const TOPIC_ACCENT_CLASS: Record<string, string> = {
-  analysis: 'bg-indigo-500',
-  stochastik: 'bg-violet-500',
-  geometrie: 'bg-sky-500',
-}
-
-// ---------------------------------------------------------------------------
-// Statistics section
-// ---------------------------------------------------------------------------
-function StatsSection() {
-  const { stats, loading, error } = useStats()
-
-  if (error) {
-    return (
-      <p className="text-xs text-red-400">Statistik konnte nicht geladen werden: {error}</p>
-    )
-  }
-
-  if (loading) {
-    return (
-      <div className="flex flex-col gap-5">
-        <div className="grid grid-cols-2 gap-3">
-          <StatCardSkeleton />
-          <StatCardSkeleton />
-          <StatCardSkeleton />
-          <StatCardSkeleton />
-        </div>
-        <Skeleton className="h-[192px] w-full" />
-        <div className="rounded-xl border border-white/10 bg-surface p-5">
-          <Skeleton className="mb-4 h-3 w-32" />
-          <div className="flex flex-col gap-4">
-            <Skeleton className="h-5 w-full" />
-            <Skeleton className="h-5 w-full" />
-            <Skeleton className="h-5 w-full" />
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  if (!stats || stats.totalAttempted === 0) {
-    return (
-      <div className="rounded-xl border border-white/10 bg-surface py-10 text-center">
-        <p className="text-2xl">📊</p>
-        <p className="mt-2 text-sm font-medium text-white">Noch keine Aufgaben bearbeitet</p>
-        <p className="mt-1 text-xs text-slate-500">
-          Löse deine erste Aufgabe, um deine Statistiken hier zu sehen.
-        </p>
-        <Link
-          to="/math"
-          className="mt-4 inline-block rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500"
-        >
-          Zu Mathematik →
-        </Link>
-      </div>
-    )
-  }
-
-  return (
-    <div className="flex flex-col gap-5">
-      {/* Metric cards */}
-      <div className="grid grid-cols-2 gap-3">
-        <StatCard
-          label="Bearbeitet"
-          value={stats.totalAttempted}
-          sub="Aufgaben"
-        />
-        <StatCard
-          label="Ø Score"
-          value={`${stats.avgPct}%`}
-          sub="über alle Aufgaben"
-        />
-        <StatCard
-          label="Punkte gesamt"
-          value={`${stats.totalScore} / ${stats.totalMaxScore}`}
-          sub="erreicht / möglich"
-        />
-        <StatCard
-          label="Volle Punktzahl"
-          value={stats.fullMarks}
-          sub={stats.zeroPts > 0 ? `${stats.zeroPts} × 0 Punkte` : 'Kein Totalausfall'}
-        />
-      </div>
-
-      {/* Bar chart */}
-      <ScoreChart buckets={stats.scoreBuckets} />
-
-      {/* Topic progress */}
-      <div className="rounded-xl border border-white/10 bg-surface p-5">
-        <p className="mb-4 text-xs font-medium uppercase tracking-wide text-slate-500">
-          Fortschritt nach Thema
-        </p>
-        <div className="flex flex-col gap-4">
-          {TOPICS.map((t) => {
-            const ts = stats.topicStats.find((s) => s.topicId === t.id)
-            return (
-              <TopicProgressBar
-                key={t.id}
-                label={t.label}
-                attempted={ts?.attempted ?? 0}
-                total={ts?.total ?? 0}
-                avgPct={ts?.avgPct ?? 0}
-                accentClass={TOPIC_ACCENT_CLASS[t.id] ?? 'bg-indigo-500'}
-              />
-            )
-          })}
-        </div>
-
-        {/* Best / weakest callouts */}
-        {(stats.bestTopic || stats.weakestTopic) && (
-          <div className="mt-4 flex flex-wrap gap-2 border-t border-white/5 pt-4">
-            {stats.bestTopic && stats.bestTopic !== stats.weakestTopic && (
-              <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-xs text-emerald-400">
-                Stärkstes: {stats.bestTopic.label} ({stats.bestTopic.avgPct}%)
-              </span>
-            )}
-            {stats.weakestTopic && (
-              <span className="rounded-full bg-amber-500/10 px-3 py-1 text-xs text-amber-400">
-                Schwächstes: {stats.weakestTopic.label} ({stats.weakestTopic.avgPct}%)
-              </span>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Page
-// ---------------------------------------------------------------------------
 export default function Profile() {
   const { user } = useAuth()
   const meta = user?.user_metadata ?? {}
   const displayLabel = meta.display_name || meta.username || user?.email || '?'
+
+  const { getStats, loading, error } = useAnalytics()
+  const stats = useMemo(() => getStats(null), [getStats])
 
   return (
     <div className="mx-auto max-w-lg px-6 py-12">
@@ -276,13 +50,66 @@ export default function Profile() {
         </Link>
       </div>
 
-      {/* Stats */}
-      <div className="mb-2">
-        <h2 className="mb-4 text-xs font-medium uppercase tracking-wide text-slate-500">
-          Statistik
-        </h2>
-        <StatsSection />
+      {/* Summary stats */}
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-xs font-medium uppercase tracking-wide text-slate-500">Übersicht</h2>
+        <Link
+          to="/analytics"
+          className="text-xs text-indigo-400 hover:text-indigo-300"
+        >
+          Vollständige Statistiken →
+        </Link>
       </div>
+
+      {error && (
+        <p className="text-xs text-red-400 mb-4">Statistiken konnten nicht geladen werden.</p>
+      )}
+
+      {loading ? (
+        <div className="grid grid-cols-2 gap-3">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+              <Skeleton className="mb-2 h-3 w-16" />
+              <Skeleton className="h-7 w-12" />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-3">
+          <StatCard
+            label="Bearbeitet"
+            value={stats.totalAttempted}
+            sub="Aufgaben gesamt"
+          />
+          <StatCard
+            label="Ø Score"
+            value={stats.totalAttempted > 0 ? `${stats.avgPct}%` : '–'}
+            sub="über alle Fächer"
+          />
+          <StatCard
+            label="Punkte"
+            value={stats.totalAttempted > 0 ? `${stats.totalScore}/${stats.totalMaxScore}` : '–'}
+            sub="erreicht / möglich"
+          />
+          <StatCard
+            label="Volle Punktzahl"
+            value={stats.fullMarks}
+            sub={stats.zeroPts > 0 ? `${stats.zeroPts} × Null` : stats.totalAttempted > 0 ? 'Kein Totalausfall' : '–'}
+          />
+        </div>
+      )}
+
+      {!loading && stats.totalAttempted === 0 && (
+        <div className="mt-4 rounded-xl border border-white/5 bg-white/[0.02] px-5 py-8 text-center">
+          <p className="text-sm text-slate-500">Noch keine Aufgaben bearbeitet.</p>
+          <Link
+            to="/math"
+            className="mt-3 inline-block text-sm text-indigo-400 hover:text-indigo-300"
+          >
+            Jetzt üben →
+          </Link>
+        </div>
+      )}
     </div>
   )
 }
