@@ -218,7 +218,7 @@ function LoggedInView({ displayName }: { displayName: string }) {
 // ---------------------------------------------------------------------------
 function GuestView() {
   return (
-    <div className="overflow-x-hidden">
+    <div>
       {/* ------------------------------------------------------------------ */}
       {/* Hero                                                                */}
       {/* ------------------------------------------------------------------ */}
@@ -248,12 +248,12 @@ function GuestView() {
           >
             Kostenlos starten →
           </Link>
-          <a
-            href="#demo"
+          <button
+            onClick={() => document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
             className="rounded-lg border border-gray-200 px-6 py-3 text-sm font-semibold text-gray-600 transition-colors hover:border-gray-300 hover:text-gray-900 dark:border-white/10 dark:text-slate-300 dark:hover:border-white/20 dark:hover:text-white"
           >
             Demo ansehen
-          </a>
+          </button>
         </div>
 
         <p className="mt-4 text-xs text-gray-400 dark:text-slate-600">
