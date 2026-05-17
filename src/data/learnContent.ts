@@ -16,7 +16,7 @@ const content: LearnContent[] = [
   // ── Analysis ────────────────────────────────────────────────────────────────
 
   {
-    subtopic: 'Differentialrechnung',
+    subtopic: 'ganzrationale-funktionen',
     concept:
       'Die Ableitung $f\'(x)$ beschreibt die momentane Steigung des Graphen an der Stelle $x$ – also wie schnell sich die Funktion dort verändert. An lokalen Extrempunkten gilt $f\'(x) = 0$. Mit der zweiten Ableitung $f\'\'(x)$ entscheidest du, ob ein Maximum oder Minimum vorliegt: $f\'\'(x_0) < 0$ → Maximum, $f\'\'(x_0) > 0$ → Minimum.',
     formula: {
@@ -61,7 +61,7 @@ const content: LearnContent[] = [
   },
 
   {
-    subtopic: 'Integralrechnung',
+    subtopic: 'integralrechnung',
     concept:
       'Das bestimmte Integral $\\int_a^b f(x)\\,dx$ berechnet den orientierten Flächeninhalt zwischen dem Graphen und der $x$-Achse. Liegt der Graph unter der $x$-Achse, wird die Fläche negativ gezählt. Zum Berechnen suchst du eine Stammfunktion $F$ mit $F\' = f$ und wertest dann $F(b) - F(a)$ aus.',
     formula: {
@@ -108,7 +108,7 @@ const content: LearnContent[] = [
   // ── Stochastik ───────────────────────────────────────────────────────────────
 
   {
-    subtopic: 'Binomialverteilung',
+    subtopic: 'binomialverteilung',
     concept:
       'Die Binomialverteilung beschreibt, wie oft ein Treffer bei $n$ unabhängigen Versuchen auftritt, wenn jeder Versuch dieselbe Trefferwahrscheinlichkeit $p$ hat. Voraussetzungen: feste Anzahl $n$, konstantes $p$, Unabhängigkeit der Versuche. Typische Szenarien: Münzwürfe, Qualitätsprüfungen, Multiple-Choice-Tests.',
     formula: {
@@ -148,7 +148,7 @@ const content: LearnContent[] = [
   },
 
   {
-    subtopic: 'Erwartungswert',
+    subtopic: 'wahrscheinlichkeit-zufallsgroessen',
     concept:
       'Der Erwartungswert $E(X)$ ist der langfristige Durchschnittswert, den eine Zufallsgröße bei sehr vielen Wiederholungen annimmt. Er muss kein möglicher Wert von $X$ sein. Bei der Binomialverteilung gilt die Kurzformel $E(X) = n \\cdot p$.',
     formula: {
@@ -191,7 +191,7 @@ const content: LearnContent[] = [
   // ── Geometrie ────────────────────────────────────────────────────────────────
 
   {
-    subtopic: 'Vektoren',
+    subtopic: 'vektorrechnung',
     concept:
       'Vektoren beschreiben Verschiebungen im Raum – sie haben eine Richtung und eine Länge, aber keinen festen Startpunkt. Der Verbindungsvektor $\\overrightarrow{AB}$ zeigt von $A$ nach $B$ und ergibt sich als $B - A$. Mit dem Skalarprodukt berechnest du Winkel zwischen Vektoren und prüfst Orthogonalität.',
     formula: {

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { TOPICS, QUESTIONS_PER_SUBTOPIC } from '../data/topics'
-import type { Topic } from '../data/topics'
+import { TOPICS } from '../data/topics'
+import type { Topic, Subtopic } from '../data/topics'
 import type { Question } from '../types/question'
 import { useQuestions } from '../hooks/useQuestions'
 import { useProgress } from '../context/ProgressContext'
@@ -11,47 +11,7 @@ import LearnMode from '../components/LearnMode'
 type View =
   | { mode: 'topics' }
   | { mode: 'subtopics'; topicId: Topic }
-  | { mode: 'question'; topicId: Topic; subtopic: string; questionIdx: number }
-
-function QuestionDot({
-  state,
-  locked,
-  score,
-  maxPoints,
-  onClick,
-}: {
-  state: 'unattempted' | 'full' | 'partial' | 'zero' | 'locked'
-  locked?: boolean
-  score?: number
-  maxPoints?: number
-  onClick?: () => void
-}) {
-  const colors = {
-    locked: 'bg-gray-200 cursor-not-allowed dark:bg-white/5',
-    unattempted: 'bg-gray-300 hover:bg-gray-400 cursor-pointer dark:bg-slate-600 dark:hover:bg-slate-400',
-    full: 'bg-emerald-500 hover:bg-emerald-400 cursor-pointer',
-    partial: 'bg-amber-400 hover:bg-amber-300 cursor-pointer',
-    zero: 'bg-red-500 hover:bg-red-400 cursor-pointer',
-  }
-  const key = locked ? 'locked' : state
-
-  let tooltip: string
-  if (locked) {
-    tooltip = 'Gesperrt'
-  } else if (state === 'unattempted') {
-    tooltip = 'Noch nicht bearbeitet'
-  } else {
-    tooltip = `${score ?? 0} / ${maxPoints ?? '?'} Punkte`
-  }
-
-  return (
-    <button
-      onClick={locked ? undefined : onClick}
-      title={tooltip}
-      className={`h-3 w-3 rounded-full transition-colors ${colors[key]}`}
-    />
-  )
-}
+  | { mode: 'question'; topicId: Topic; subtopicId: string; questionIdx: number }
 
 const TOPIC_ACCENT: Record<Topic, { bg: string; border: string; text: string; dot: string }> = {
   analysis: {
@@ -66,7 +26,7 @@ const TOPIC_ACCENT: Record<Topic, { bg: string; border: string; text: string; do
     text: 'text-violet-600 dark:text-violet-300',
     dot: 'bg-violet-500',
   },
-  geometrie: {
+  'analytische-geometrie': {
     bg: 'bg-sky-600/10',
     border: 'border-sky-500/30 hover:border-sky-500/60',
     text: 'text-sky-600 dark:text-sky-300',
@@ -77,10 +37,45 @@ const TOPIC_ACCENT: Record<Topic, { bg: string; border: string; text: string; do
 const TOPIC_ICONS: Record<Topic, string> = {
   analysis: '∫',
   stochastik: '🎲',
-  geometrie: '📐',
+  'analytische-geometrie': '📐',
 }
 
-function TopicsView({ questions, onSelectTopic }: { questions: Question[]; onSelectTopic: (id: Topic) => void }) {
+function QuestionDot({
+  state,
+  score,
+  maxPoints,
+  onClick,
+}: {
+  state: 'unattempted' | 'full' | 'partial' | 'zero'
+  score?: number
+  maxPoints?: number
+  onClick?: () => void
+}) {
+  const colors = {
+    unattempted: 'bg-gray-300 hover:bg-gray-400 cursor-pointer dark:bg-slate-600 dark:hover:bg-slate-400',
+    full: 'bg-emerald-500 hover:bg-emerald-400 cursor-pointer',
+    partial: 'bg-amber-400 hover:bg-amber-300 cursor-pointer',
+    zero: 'bg-red-500 hover:bg-red-400 cursor-pointer',
+  }
+  const tooltip =
+    state === 'unattempted' ? 'Noch nicht bearbeitet' : `${score ?? 0} / ${maxPoints ?? '?'} Punkte`
+
+  return (
+    <button
+      onClick={onClick}
+      title={tooltip}
+      className={`h-3 w-3 rounded-full transition-colors ${colors[state]}`}
+    />
+  )
+}
+
+function TopicsView({
+  questions,
+  onSelectTopic,
+}: {
+  questions: Question[]
+  onSelectTopic: (id: Topic) => void
+}) {
   const { getSubtopicProgress } = useProgress()
 
   return (
@@ -99,7 +94,7 @@ function TopicsView({ questions, onSelectTopic }: { questions: Question[]; onSel
         {TOPICS.map((topic) => {
           const accent = TOPIC_ACCENT[topic.id]
           const allQuestionIds = topic.subtopics.flatMap((s) =>
-            questions.filter((q) => q.subtopic === s && !q.locked).map((q) => q.id),
+            questions.filter((q) => q.subtopic === s.id).map((q) => q.id),
           )
           const { attempted, total } = getSubtopicProgress('', allQuestionIds)
 
@@ -116,13 +111,14 @@ function TopicsView({ questions, onSelectTopic }: { questions: Question[]; onSel
 
               <ul className="space-y-1">
                 {topic.subtopics.map((sub) => {
-                  const subIds = questions.filter((q) => q.subtopic === sub && !q.locked).map((q) => q.id)
-                  const prog = getSubtopicProgress(sub, subIds)
+                  const subIds = questions.filter((q) => q.subtopic === sub.id).map((q) => q.id)
+                  const prog = getSubtopicProgress(sub.id, subIds)
+                  const count = subIds.length
                   return (
-                    <li key={sub} className="flex items-center justify-between gap-2">
-                      <span className="truncate text-xs text-gray-500 dark:text-slate-400">{sub}</span>
+                    <li key={sub.id} className="flex items-center justify-between gap-2">
+                      <span className="truncate text-xs text-gray-500 dark:text-slate-400">{sub.label}</span>
                       <span className="shrink-0 text-xs text-gray-400 dark:text-slate-600">
-                        {prog.attempted}/{QUESTIONS_PER_SUBTOPIC}
+                        {prog.attempted}/{count}
                       </span>
                     </li>
                   )
@@ -132,7 +128,9 @@ function TopicsView({ questions, onSelectTopic }: { questions: Question[]; onSel
               <div className="mt-auto">
                 <div className="mb-1 flex justify-between text-xs text-gray-400 dark:text-slate-500">
                   <span>Gesamt</span>
-                  <span>{attempted}/{total}</span>
+                  <span>
+                    {attempted}/{total}
+                  </span>
                 </div>
                 <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-white/5">
                   <div
@@ -161,7 +159,7 @@ function SubtopicsView({
 }: {
   topicId: Topic
   questions: Question[]
-  onSelectSubtopic: (subtopic: string, idx: number) => void
+  onSelectSubtopic: (subtopicId: string, idx: number) => void
   onBack: () => void
 }) {
   const { attempts, getQuestionState, getSubtopicProgress } = useProgress()
@@ -171,7 +169,10 @@ function SubtopicsView({
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center gap-3">
-        <button onClick={onBack} className="text-sm text-gray-400 hover:text-gray-900 dark:text-slate-500 dark:hover:text-white">
+        <button
+          onClick={onBack}
+          className="text-sm text-gray-400 hover:text-gray-900 dark:text-slate-500 dark:hover:text-white"
+        >
           ← Zurück
         </button>
         <span className={`text-lg ${accent.text}`}>{TOPIC_ICONS[topicId]}</span>
@@ -179,53 +180,61 @@ function SubtopicsView({
       </div>
 
       <div className="flex flex-col gap-3">
-        {topic.subtopics.map((sub) => {
-          const qs = questions.filter((q) => q.subtopic === sub)
-          const unlockedIds = qs.filter((q) => !q.locked).map((q) => q.id)
-          const { attempted } = getSubtopicProgress(sub, unlockedIds)
-          const pct = (attempted / QUESTIONS_PER_SUBTOPIC) * 100
+        {topic.subtopics.map((sub: Subtopic) => {
+          const qs = questions.filter((q) => q.subtopic === sub.id)
+          const total = qs.length
+          const { attempted } = getSubtopicProgress(sub.id, qs.map((q) => q.id))
+          const pct = total > 0 ? (attempted / total) * 100 : 0
 
           return (
-            <div key={sub} className="rounded-xl border border-gray-200 bg-surface p-4 dark:border-white/10">
+            <div key={sub.id} className="rounded-xl border border-gray-200 bg-white p-4 dark:border-white/10 dark:bg-surface">
               <div className="mb-3 flex items-center justify-between gap-4">
-                <h3 className="font-medium text-gray-900 dark:text-white">{sub}</h3>
-                <span className="text-xs text-gray-400 dark:text-slate-500">
-                  {attempted}/{QUESTIONS_PER_SUBTOPIC}
-                </span>
+                <h3 className="font-medium text-gray-900 dark:text-white">{sub.label}</h3>
+                {total > 0 ? (
+                  <span className="text-xs text-gray-400 dark:text-slate-500">
+                    {attempted}/{total} bearbeitet
+                  </span>
+                ) : (
+                  <span className="text-xs text-gray-400 dark:text-slate-600">0 Aufgaben verfügbar</span>
+                )}
               </div>
 
-              <div className="mb-3 h-1 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-white/5">
-                <div
-                  className="h-full rounded-full bg-indigo-500 transition-all"
-                  style={{ width: `${pct}%` }}
-                />
-              </div>
-
-              <div className="mb-3 flex flex-wrap gap-1.5">
-                {qs.map((q, idx) => {
-                  const attempt = attempts[q.id]
-                  return (
-                    <QuestionDot
-                      key={q.id}
-                      locked={q.locked}
-                      state={q.locked ? 'locked' : getQuestionState(q.id, q.max_points)}
-                      score={attempt?.score}
-                      maxPoints={attempt?.maxPoints ?? q.max_points}
-                      onClick={() => onSelectSubtopic(sub, idx)}
+              {total > 0 ? (
+                <>
+                  <div className="mb-3 h-1 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-white/5">
+                    <div
+                      className="h-full rounded-full bg-indigo-500 transition-all"
+                      style={{ width: `${pct}%` }}
                     />
-                  )
-                })}
-              </div>
+                  </div>
 
-              <button
-                onClick={() => {
-                  const firstUnlockedIdx = qs.findIndex((q) => !q.locked)
-                  onSelectSubtopic(sub, firstUnlockedIdx >= 0 ? firstUnlockedIdx : 0)
-                }}
-                className={`text-xs font-medium ${accent.text} hover:underline`}
-              >
-                Aufgaben öffnen →
-              </button>
+                  <div className="mb-3 flex flex-wrap gap-1.5">
+                    {qs.map((q, idx) => {
+                      const attempt = attempts[q.id]
+                      return (
+                        <QuestionDot
+                          key={q.id}
+                          state={getQuestionState(q.id, q.max_points)}
+                          score={attempt?.score}
+                          maxPoints={attempt?.maxPoints ?? q.max_points}
+                          onClick={() => onSelectSubtopic(sub.id, idx)}
+                        />
+                      )
+                    })}
+                  </div>
+
+                  <button
+                    onClick={() => onSelectSubtopic(sub.id, 0)}
+                    className={`text-xs font-medium ${accent.text} hover:underline`}
+                  >
+                    Aufgaben öffnen →
+                  </button>
+                </>
+              ) : (
+                <p className="text-xs text-gray-400 dark:text-slate-600">
+                  Noch keine Aufgaben für dieses Thema vorhanden.
+                </p>
+              )}
             </div>
           )
         })}
@@ -236,25 +245,28 @@ function SubtopicsView({
 
 function QuestionView({
   topicId,
-  subtopic,
+  subtopicId,
   questionIdx,
   questions,
   onNavigate,
   onBack,
 }: {
   topicId: Topic
-  subtopic: string
+  subtopicId: string
   questionIdx: number
   questions: Question[]
   onNavigate: (idx: number) => void
   onBack: () => void
 }) {
   const { attempts } = useProgress()
-  const qs = questions.filter((q) => q.subtopic === subtopic)
-  const question = qs[questionIdx]
+  const topic = TOPICS.find((t) => t.id === topicId)!
+  const subtopic = topic.subtopics.find((s) => s.id === subtopicId)
   const accent = TOPIC_ACCENT[topicId]
 
-  const hasAnyAttempt = qs.some((q) => !q.locked && attempts[q.id] !== undefined)
+  const qs = questions.filter((q) => q.subtopic === subtopicId)
+  const question = qs[questionIdx]
+
+  const hasAnyAttempt = qs.some((q) => attempts[q.id] !== undefined)
   const [tab, setTab] = useState<'lernen' | 'ueben'>(hasAnyAttempt ? 'ueben' : 'lernen')
 
   if (!question) return null
@@ -262,12 +274,15 @@ function QuestionView({
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-center gap-3">
-        <button onClick={onBack} className="text-sm text-gray-400 hover:text-gray-900 dark:text-slate-500 dark:hover:text-white">
+        <button
+          onClick={onBack}
+          className="text-sm text-gray-400 hover:text-gray-900 dark:text-slate-500 dark:hover:text-white"
+        >
           ← Zurück
         </button>
-        <span className={`text-sm ${accent.text}`}>{TOPICS.find((t) => t.id === topicId)?.label}</span>
+        <span className={`text-sm ${accent.text}`}>{topic.label}</span>
         <span className="text-gray-300 dark:text-slate-600">/</span>
-        <span className="text-sm text-gray-500 dark:text-slate-400">{subtopic}</span>
+        <span className="text-sm text-gray-500 dark:text-slate-400">{subtopic?.label ?? subtopicId}</span>
       </div>
 
       <div className="flex w-fit gap-1 rounded-lg border border-gray-200 bg-gray-50 p-1 dark:border-white/10 dark:bg-white/[0.03]">
@@ -294,18 +309,7 @@ function QuestionView({
       </div>
 
       {tab === 'lernen' ? (
-        <LearnMode subtopic={subtopic} />
-      ) : question.locked ? (
-        <div className="flex flex-col items-center gap-4 rounded-xl border border-gray-200 bg-surface py-16 text-center dark:border-white/10">
-          <span className="text-4xl">🔒</span>
-          <h2 className="font-semibold text-gray-900 dark:text-white">Gesperrte Aufgabe</h2>
-          <p className="max-w-sm text-sm text-gray-500 dark:text-slate-400">
-            Diese Aufgabe wird bald freigeschaltet. Weitere Inhalte sind in Vorbereitung.
-          </p>
-          <button onClick={onBack} className={`text-sm font-medium ${accent.text} hover:underline`}>
-            Zurück zur Übersicht
-          </button>
-        </div>
+        <LearnMode subtopic={subtopicId} />
       ) : (
         <QuestionCard
           question={question}
@@ -343,7 +347,10 @@ export default function Math() {
     <div className="mx-auto max-w-4xl px-6 py-12">
       <div className="mb-6">
         {view.mode === 'topics' && (
-          <Link to="/" className="text-sm text-gray-400 hover:text-gray-900 dark:text-slate-500 dark:hover:text-white">
+          <Link
+            to="/"
+            className="text-sm text-gray-400 hover:text-gray-900 dark:text-slate-500 dark:hover:text-white"
+          >
             ← Fächerübersicht
           </Link>
         )}
@@ -361,22 +368,27 @@ export default function Math() {
           topicId={view.topicId}
           questions={questions}
           onBack={() => setView({ mode: 'topics' })}
-          onSelectSubtopic={(subtopic, idx) =>
-            setView({ mode: 'question', topicId: view.topicId, subtopic, questionIdx: idx })
+          onSelectSubtopic={(subtopicId, idx) =>
+            setView({ mode: 'question', topicId: view.topicId, subtopicId, questionIdx: idx })
           }
         />
       )}
 
       {view.mode === 'question' && (
         <QuestionView
-          key={view.subtopic}
+          key={view.subtopicId}
           topicId={view.topicId}
-          subtopic={view.subtopic}
+          subtopicId={view.subtopicId}
           questionIdx={view.questionIdx}
           questions={questions}
           onBack={() => setView({ mode: 'subtopics', topicId: view.topicId })}
           onNavigate={(idx) =>
-            setView({ mode: 'question', topicId: view.topicId, subtopic: view.subtopic, questionIdx: idx })
+            setView({
+              mode: 'question',
+              topicId: view.topicId,
+              subtopicId: view.subtopicId,
+              questionIdx: idx,
+            })
           }
         />
       )}
