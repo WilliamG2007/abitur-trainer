@@ -1,7 +1,25 @@
-import { useRef, useEffect, useState, useCallback } from 'react'
+import { useRef, useEffect, useState, useCallback, type RefObject } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import SubjectCard from '../components/SubjectCard'
+
+// ---------------------------------------------------------------------------
+// Smooth scroll helper — rAF tween, always works regardless of CSS context
+// ---------------------------------------------------------------------------
+function scrollToRef(ref: RefObject<HTMLElement | null>, duration = 650) {
+  const el = ref.current
+  if (!el) return
+  const start = window.scrollY
+  const target = el.getBoundingClientRect().top + window.scrollY - 72 // 72 = navbar height
+  const startTime = performance.now()
+  const ease = (t: number) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
+  const step = (now: number) => {
+    const p = Math.min((now - startTime) / duration, 1)
+    window.scrollTo(0, start + (target - start) * ease(p))
+    if (p < 1) requestAnimationFrame(step)
+  }
+  requestAnimationFrame(step)
+}
 
 // ---------------------------------------------------------------------------
 // Data
@@ -209,6 +227,18 @@ function LoggedInView({ displayName }: { displayName: string }) {
           <SubjectCard key={s.to} {...s} />
         ))}
       </div>
+
+      {/* Footer */}
+      <footer className="mt-20 border-t border-gray-100 py-8 dark:border-white/5">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <p className="text-sm font-semibold text-gray-900 dark:text-white">AbiturTrainer</p>
+          <div className="flex items-center gap-4 text-xs text-gray-400 dark:text-slate-600">
+            <span>© 2026 AbiturTrainer</span>
+            <a href="#" className="transition-colors hover:text-gray-600 dark:hover:text-slate-400">Datenschutz</a>
+            <a href="#" className="transition-colors hover:text-gray-600 dark:hover:text-slate-400">Impressum</a>
+          </div>
+        </div>
+      </footer>
     </div>
   )
 }
@@ -217,6 +247,7 @@ function LoggedInView({ displayName }: { displayName: string }) {
 // Marketing / guest view
 // ---------------------------------------------------------------------------
 function GuestView() {
+  const demoRef = useRef<HTMLElement>(null)
   return (
     <div>
       {/* ------------------------------------------------------------------ */}
@@ -249,7 +280,7 @@ function GuestView() {
             Kostenlos starten →
           </Link>
           <button
-            onClick={() => document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            onClick={() => scrollToRef(demoRef)}
             className="rounded-lg border border-gray-200 px-6 py-3 text-sm font-semibold text-gray-600 transition-colors hover:border-gray-300 hover:text-gray-900 dark:border-white/10 dark:text-slate-300 dark:hover:border-white/20 dark:hover:text-white"
           >
             Demo ansehen
@@ -314,8 +345,9 @@ function GuestView() {
       {/* Demo Section                                                        */}
       {/* ------------------------------------------------------------------ */}
       <section
+        ref={demoRef}
         id="demo"
-        className="scroll-mt-16 border-y border-gray-100 bg-gray-50 px-6 py-20 dark:border-white/5 dark:bg-white/[0.02]"
+        className="border-y border-gray-100 bg-gray-50 px-6 py-20 dark:border-white/5 dark:bg-white/[0.02]"
       >
         <div className="mx-auto max-w-5xl">
           <p className="mb-2 text-center text-xs font-medium uppercase tracking-widest text-gray-400 dark:text-slate-500">
