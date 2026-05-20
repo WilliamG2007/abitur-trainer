@@ -2,6 +2,8 @@ import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useAnalytics, SUBJECTS } from '../hooks/useAnalytics'
 import type { FilteredStats } from '../hooks/useAnalytics'
+import { useAttemptHistory } from '../hooks/useAttemptHistory'
+import type { AttemptEntry } from '../hooks/useAttemptHistory'
 import { useTheme } from '../hooks/useTheme'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -158,6 +160,131 @@ function EmptyState() {
   )
 }
 
+// ── Attempt History ──────────────────────────────────────────────────────────
+
+function scoreColor(score: number, max: number) {
+  const pct = max > 0 ? score / max : 0
+  if (pct >= 1) return 'text-emerald-500 dark:text-emerald-400'
+  if (pct > 0) return 'text-amber-500 dark:text-amber-400'
+  return 'text-red-500 dark:text-red-400'
+}
+
+function AttemptCard({ entry }: { entry: AttemptEntry }) {
+  const [expanded, setExpanded] = useState(false)
+  const date = new Date(entry.attemptedAt).toLocaleDateString('de-DE', {
+    day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
+  })
+  const sc = scoreColor(entry.score, entry.maxScore)
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-surface dark:border-white/10 overflow-hidden">
+      <button
+        onClick={() => setExpanded((v) => !v)}
+        className="flex w-full items-start gap-4 p-4 text-left hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors"
+      >
+        {/* Solution thumbnail */}
+        <div className="shrink-0">
+          {entry.solutionImage ? (
+            <img
+              src={entry.solutionImage}
+              alt="Lösung"
+              className="h-14 w-20 rounded border border-gray-200 bg-[#0a0c13] object-contain dark:border-white/10"
+            />
+          ) : entry.solutionText ? (
+            <div className="flex h-14 w-20 items-center justify-center rounded border border-gray-200 bg-gray-50 dark:border-white/10 dark:bg-white/[0.03]">
+              <span className="line-clamp-3 px-1 text-[9px] leading-snug text-gray-500 dark:text-slate-500">
+                {entry.solutionText.slice(0, 80)}
+              </span>
+            </div>
+          ) : (
+            <div className="flex h-14 w-20 items-center justify-center rounded border border-gray-200 bg-gray-50 text-xs text-gray-400 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-600">
+              –
+            </div>
+          )}
+        </div>
+
+        {/* Info */}
+        <div className="flex flex-1 flex-col gap-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs font-medium text-gray-400 dark:text-slate-500">
+              Versuch {entry.attemptNumber}
+            </span>
+            <span className="text-xs text-gray-300 dark:text-slate-600">·</span>
+            <span className="text-xs text-gray-400 dark:text-slate-500">{date}</span>
+          </div>
+          <p className="truncate text-sm font-medium text-gray-900 dark:text-white">
+            {entry.questionTitle || entry.subtopic}
+          </p>
+          <p className={`text-sm font-semibold ${sc}`}>
+            {entry.score} / {entry.maxScore} BE
+          </p>
+        </div>
+
+        <span className="shrink-0 text-gray-400 dark:text-slate-600 mt-1">
+          {expanded ? '▲' : '▼'}
+        </span>
+      </button>
+
+      {expanded && (
+        <div className="border-t border-gray-100 dark:border-white/5 flex flex-col gap-4 p-4">
+          {entry.solutionImage && (
+            <div>
+              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-slate-500">Lösung</p>
+              <img
+                src={entry.solutionImage}
+                alt="Lösung"
+                className="max-h-96 w-full rounded-lg border border-gray-200 bg-[#0a0c13] object-contain dark:border-white/10"
+              />
+            </div>
+          )}
+          {entry.solutionText && (
+            <div>
+              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-slate-500">Lösung (Text)</p>
+              <pre className="whitespace-pre-wrap rounded-lg border border-gray-100 bg-gray-50 p-4 text-sm text-gray-700 dark:border-white/5 dark:bg-white/[0.02] dark:text-slate-300">
+                {entry.solutionText}
+              </pre>
+            </div>
+          )}
+          {entry.feedback && (
+            <div>
+              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-slate-500">KI-Feedback</p>
+              <p className="whitespace-pre-wrap text-sm leading-relaxed text-gray-700 dark:text-slate-300">
+                {entry.feedback}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function AttemptHistory() {
+  const { attempts, loading, error } = useAttemptHistory()
+
+  if (loading) return (
+    <div className="flex flex-col gap-3">
+      {[...Array(3)].map((_, i) => (
+        <div key={i} className="h-24 animate-pulse rounded-xl bg-gray-100 dark:bg-white/5" />
+      ))}
+    </div>
+  )
+  if (error) return <p className="text-sm text-red-500">{error}</p>
+  if (attempts.length === 0) return (
+    <p className="text-sm text-gray-400 dark:text-slate-500">Noch keine Versuche gespeichert.</p>
+  )
+
+  return (
+    <div className="flex flex-col gap-3">
+      {attempts.map((entry) => (
+        <AttemptCard key={entry.id} entry={entry} />
+      ))}
+    </div>
+  )
+}
+
+// ── Tabs ─────────────────────────────────────────────────────────────────────
+
 const TABS = [{ id: null, label: 'Alle' }, ...SUBJECTS]
 
 function TabBar({ selected, onChange }: { selected: string | null; onChange: (id: string | null) => void }) {
@@ -186,8 +313,11 @@ function TabBar({ selected, onChange }: { selected: string | null; onChange: (id
   )
 }
 
+type PageTab = 'stats' | 'verlauf'
+
 export default function Analytics() {
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null)
+  const [pageTab, setPageTab] = useState<PageTab>('stats')
   const { getStats, loading, error } = useAnalytics()
 
   const stats = useMemo(() => getStats(selectedSubject), [getStats, selectedSubject])
@@ -203,26 +333,49 @@ export default function Analytics() {
         <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">Dein Lernfortschritt auf einen Blick.</p>
       </div>
 
-      <div className="mb-6">
-        <TabBar selected={selectedSubject} onChange={setSelectedSubject} />
+      {/* Page-level tabs: Statistiken vs Verlauf */}
+      <div className="mb-6 flex gap-1 rounded-lg border border-gray-200 p-0.5 dark:border-white/10 w-fit">
+        {(['stats', 'verlauf'] as PageTab[]).map((t) => (
+          <button
+            key={t}
+            onClick={() => setPageTab(t)}
+            className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
+              pageTab === t
+                ? 'bg-indigo-600 text-white'
+                : 'text-gray-500 hover:text-gray-900 dark:text-slate-400 dark:hover:text-white'
+            }`}
+          >
+            {t === 'stats' ? 'Statistiken' : 'Verlauf'}
+          </button>
+        ))}
       </div>
 
-      {error && <p className="text-sm text-red-500 dark:text-red-400">Fehler: {error}</p>}
-      {loading && <SkeletonStats />}
-      {!loading && !error && stats.totalAttempted === 0 && <EmptyState />}
+      {pageTab === 'verlauf' && <AttemptHistory />}
 
-      {!loading && !error && stats.totalAttempted > 0 && (
-        <div className="flex flex-col gap-5">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <StatCard label="Bearbeitet" value={stats.totalAttempted} sub="Aufgaben" />
-            <StatCard label="Ø Score" value={`${stats.avgPct}%`} sub="Durchschnitt" />
-            <StatCard label="Punkte" value={`${stats.totalScore}/${stats.totalMaxScore}`} sub="erreicht / möglich" />
-            <StatCard label="Volle Punkte" value={stats.fullMarks} sub={stats.zeroPts > 0 ? `${stats.zeroPts} × Null` : '–'} />
+      {pageTab === 'stats' && (
+        <>
+          <div className="mb-6">
+            <TabBar selected={selectedSubject} onChange={setSelectedSubject} />
           </div>
 
-          <ScoreChart buckets={stats.scoreBuckets} />
-          <BreakdownBars stats={stats} selectedSubject={selectedSubject} />
-        </div>
+          {error && <p className="text-sm text-red-500 dark:text-red-400">Fehler: {error}</p>}
+          {loading && <SkeletonStats />}
+          {!loading && !error && stats.totalAttempted === 0 && <EmptyState />}
+
+          {!loading && !error && stats.totalAttempted > 0 && (
+            <div className="flex flex-col gap-5">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <StatCard label="Bearbeitet" value={stats.totalAttempted} sub="Aufgaben" />
+                <StatCard label="Ø Score" value={`${stats.avgPct}%`} sub="Durchschnitt" />
+                <StatCard label="Punkte" value={`${stats.totalScore}/${stats.totalMaxScore}`} sub="erreicht / möglich" />
+                <StatCard label="Volle Punkte" value={stats.fullMarks} sub={stats.zeroPts > 0 ? `${stats.zeroPts} × Null` : '–'} />
+              </div>
+
+              <ScoreChart buckets={stats.scoreBuckets} />
+              <BreakdownBars stats={stats} selectedSubject={selectedSubject} />
+            </div>
+          )}
+        </>
       )}
     </div>
   )

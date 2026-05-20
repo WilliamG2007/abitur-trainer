@@ -6,7 +6,7 @@ import type { QuestionState, AttemptRecord } from '../context/ProgressContext'
 export interface UseProgressResult {
   attempts: Record<string, AttemptRecord>
   loading: boolean
-  recordAttempt: (questionId: string, score: number, maxPoints: number, feedback?: string, solutionImage?: string) => void
+  recordAttempt: (questionId: string, score: number, maxPoints: number, feedback?: string, solutionImage?: string, solutionText?: string) => void
   getQuestionState: (questionId: string, maxPoints: number) => QuestionState
   getSubtopicProgress: (subtopic: string, questionIds: string[]) => { attempted: number; total: number }
   resetProgress: () => void
@@ -52,7 +52,7 @@ export function useProgress(): UseProgressResult {
   }, [user])
 
   const recordAttempt = useCallback(
-    (questionId: string, score: number, maxPoints: number, feedback?: string, solutionImage?: string) => {
+    (questionId: string, score: number, maxPoints: number, feedback?: string, solutionImage?: string, solutionText?: string) => {
       const now = new Date().toISOString()
 
       // Optimistic update
@@ -72,6 +72,7 @@ export function useProgress(): UseProgressResult {
           max_score: maxPoints,
           ai_feedback: feedback ?? null,
           solution_image: solutionImage ?? null,
+          solution_text: solutionText ?? null,
           attempted_at: now,
         })
         .then(({ error }) => {

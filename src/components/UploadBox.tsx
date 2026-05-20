@@ -1,5 +1,8 @@
 import { useRef, useState, DragEvent, ChangeEvent } from 'react'
 
+const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/heic']
+const MAX_BYTES = 2 * 1024 * 1024 // 2 MB
+
 interface UploadBoxProps {
   onChange?: (dataUrl: string) => void
 }
@@ -8,9 +11,20 @@ export default function UploadBox({ onChange }: UploadBoxProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [preview, setPreview] = useState<string | null>(null)
   const [dragging, setDragging] = useState(false)
+  const [fileError, setFileError] = useState<string | null>(null)
 
   const handleFile = (file: File) => {
-    if (!file.type.startsWith('image/')) return
+    setFileError(null)
+
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      setFileError('Nur Bilder erlaubt (PNG, JPG, HEIC)')
+      return
+    }
+    if (file.size > MAX_BYTES) {
+      setFileError('Datei zu groß. Maximale Größe: 2MB')
+      return
+    }
+
     const reader = new FileReader()
     reader.onload = (e) => {
       const url = e.target?.result as string
@@ -34,6 +48,7 @@ export default function UploadBox({ onChange }: UploadBoxProps) {
 
   const clear = () => {
     setPreview(null)
+    setFileError(null)
     onChange?.('')
     if (inputRef.current) inputRef.current.value = ''
   }
@@ -59,8 +74,12 @@ export default function UploadBox({ onChange }: UploadBoxProps) {
         >
           <span className="text-3xl">📷</span>
           <p className="text-sm text-gray-500 dark:text-slate-400">Foto hochladen oder hierher ziehen</p>
-          <p className="text-xs text-gray-400 dark:text-slate-600">PNG, JPG, HEIC</p>
+          <p className="text-xs text-gray-400 dark:text-slate-600">PNG, JPG, HEIC · max. 2 MB</p>
         </div>
+      )}
+
+      {fileError && (
+        <p className="text-xs text-red-500 dark:text-red-400">{fileError}</p>
       )}
 
       <div className="flex justify-end gap-2">
@@ -83,7 +102,7 @@ export default function UploadBox({ onChange }: UploadBoxProps) {
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
+        accept="image/png,image/jpeg,image/heic"
         className="hidden"
         onChange={onInputChange}
       />

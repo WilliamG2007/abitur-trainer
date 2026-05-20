@@ -6,6 +6,18 @@ type StrokeWidth = 'thin' | 'medium' | 'thick'
 const PEN_WIDTHS: Record<StrokeWidth, number> = { thin: 1.5, medium: 3, thick: 6 }
 const ERASER_WIDTHS: Record<StrokeWidth, number> = { thin: 8, medium: 16, thick: 28 }
 
+export function capCanvasForApi(dataUrl: string): string {
+  // Synchronously resize to max 1200×800 for the API payload only
+  const img = new Image()
+  img.src = dataUrl
+  const offscreen = document.createElement('canvas')
+  offscreen.width = Math.min(img.naturalWidth || 1200, 1200)
+  offscreen.height = Math.min(img.naturalHeight || 800, 800)
+  const ctx = offscreen.getContext('2d')!
+  ctx.drawImage(img, 0, 0, offscreen.width, offscreen.height)
+  return offscreen.toDataURL('image/png')
+}
+
 interface DrawingCanvasProps {
   onChange?: (dataUrl: string) => void
 }

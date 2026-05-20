@@ -3,10 +3,12 @@ import type { Question } from '../types/question'
 import { useProgress } from '../context/ProgressContext'
 import { gradeWithClaude } from '../lib/gradeWithClaude'
 import type { GradingResult } from '../lib/gradeWithClaude'
-import DrawingCanvas from './DrawingCanvas'
+import DrawingCanvas, { capCanvasForApi } from './DrawingCanvas'
 import UploadBox from './UploadBox'
+import TextBox, { TEXT_MAX } from './TextBox'
 import ResultsPanel from './ResultsPanel'
 import LatexRenderer from './LatexRenderer'
+import { useAuth } from '../context/AuthContext'
 
 interface QuestionCardProps {
   question: Question
@@ -28,6 +30,8 @@ const DIFFICULTY_COLOR: Record<string, string> = {
   hard: 'bg-rose-500/20 text-rose-600 dark:text-rose-300',
 }
 
+type InputMode = 'canvas' | 'upload' | 'text'
+
 export default function QuestionCard({
   question,
   questionNumber,
@@ -36,8 +40,12 @@ export default function QuestionCard({
   onNext,
 }: QuestionCardProps) {
   const { getQuestionState, recordAttempt } = useProgress()
-  const [inputMode, setInputMode] = useState<'canvas' | 'upload'>('canvas')
-  const [solution, setSolution] = useState<string>('')
+  const { user } = useAuth()
+  const [inputMode, setInputMode] = useState<InputMode>('canvas')
+
+  // canvas / upload stores a data URL; text mode stores plain text
+  const [imageDataUrl, setImageDataUrl] = useState<string>('')
+  const [textSolution, setTextSolution] = useState<string>('')
 
   const [isGrading, setIsGrading] = useState(false)
   const [gradingResult, setGradingResult] = useState<GradingResult | null>(null)
@@ -46,20 +54,39 @@ export default function QuestionCard({
   const state = getQuestionState(question.id, question.max_points)
   const hasResult = isGrading || gradingResult !== null || gradingError !== null
 
+  const textOver = inputMode === 'text' && textSolution.length > TEXT_MAX
+
   const handleSubmit = async () => {
-    if (!solution) {
+    if (inputMode === 'text' && !textSolution.trim()) {
+      alert('Bitte gib zuerst deine Lösung ein.')
+      return
+    }
+    if (inputMode === 'text' && textOver) return
+    if (inputMode !== 'text' && !imageDataUrl) {
       alert('Bitte zeichne oder lade zuerst deine Lösung hoch.')
       return
     }
+
     setIsGrading(true)
     setGradingResult(null)
     setGradingError(null)
+
     try {
+      let solution: Parameters<typeof gradeWithClaude>[0]
+      if (inputMode === 'text') {
+        solution = { type: 'text', content: textSolution }
+      } else {
+        // Cap canvas payload before sending to API
+        const cappedUrl = inputMode === 'canvas' ? capCanvasForApi(imageDataUrl) : imageDataUrl
+        solution = { type: 'image', dataUrl: cappedUrl }
+      }
+
       const result = await gradeWithClaude(
         solution,
         question.text,
         question.erwartungshorizont,
         question.max_points,
+        user?.id,
       )
       setGradingResult(result)
     } catch (err) {
@@ -70,18 +97,32 @@ export default function QuestionCard({
   }
 
   const handleScoreConfirmed = (score: number, feedback: string) => {
-    recordAttempt(question.id, score, question.max_points, feedback, solution || undefined)
+    recordAttempt(
+      question.id,
+      score,
+      question.max_points,
+      feedback,
+      inputMode !== 'text' ? imageDataUrl || undefined : undefined,
+      inputMode === 'text' ? textSolution || undefined : undefined,
+    )
     if (onNext) setTimeout(onNext, 300)
   }
 
+  // Reset state when question changes
   const [lastId, setLastId] = useState(question.id)
   if (question.id !== lastId) {
     setLastId(question.id)
-    setSolution('')
+    setImageDataUrl('')
+    setTextSolution('')
     setIsGrading(false)
     setGradingResult(null)
     setGradingError(null)
   }
+
+  const modeBtn = (_mode: InputMode, active: boolean) =>
+    `rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+      active ? 'bg-indigo-600 text-white' : 'text-gray-500 hover:text-gray-900 dark:text-slate-400 dark:hover:text-white'
+    }`
 
   return (
     <div className="flex flex-col gap-6">
@@ -127,29 +168,26 @@ export default function QuestionCard({
         <div className="flex items-center gap-2">
           <p className="text-sm font-medium text-gray-700 dark:text-slate-300">Deine Lösung</p>
           <div className="ml-auto flex rounded-lg border border-gray-200 p-0.5 dark:border-white/10">
-            <button
-              onClick={() => setInputMode('canvas')}
-              className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
-                inputMode === 'canvas' ? 'bg-indigo-600 text-white' : 'text-gray-500 hover:text-gray-900 dark:text-slate-400 dark:hover:text-white'
-              }`}
-            >
+            <button onClick={() => setInputMode('canvas')} className={modeBtn('canvas', inputMode === 'canvas')}>
               ✏️ Zeichnen
             </button>
-            <button
-              onClick={() => setInputMode('upload')}
-              className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
-                inputMode === 'upload' ? 'bg-indigo-600 text-white' : 'text-gray-500 hover:text-gray-900 dark:text-slate-400 dark:hover:text-white'
-              }`}
-            >
+            <button onClick={() => setInputMode('upload')} className={modeBtn('upload', inputMode === 'upload')}>
               📷 Foto
+            </button>
+            <button onClick={() => setInputMode('text')} className={modeBtn('text', inputMode === 'text')}>
+              ⌨️ Text
             </button>
           </div>
         </div>
 
-        {inputMode === 'canvas' ? (
-          <DrawingCanvas key={question.id} onChange={setSolution} />
-        ) : (
-          <UploadBox onChange={setSolution} />
+        {inputMode === 'canvas' && (
+          <DrawingCanvas key={question.id} onChange={setImageDataUrl} />
+        )}
+        {inputMode === 'upload' && (
+          <UploadBox onChange={setImageDataUrl} />
+        )}
+        {inputMode === 'text' && (
+          <TextBox onChange={setTextSolution} />
         )}
       </div>
 
@@ -157,7 +195,7 @@ export default function QuestionCard({
       {!hasResult && (
         <button
           onClick={handleSubmit}
-          disabled={isGrading}
+          disabled={isGrading || textOver}
           className="w-full rounded-lg bg-indigo-600 py-3 text-sm font-semibold text-white transition-colors hover:bg-indigo-500 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
         >
           Lösung einreichen
