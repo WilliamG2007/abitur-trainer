@@ -21,6 +21,12 @@ export default function DrawingCanvas({ onChange }: DrawingCanvasProps) {
   const [isEmpty, setIsEmpty] = useState(true)
   const [canUndo, setCanUndo] = useState(false)
 
+  // Resize state
+  const [canvasHeight, setCanvasHeight] = useState(280)
+  const isDraggingResize = useRef(false)
+  const dragStartY = useRef(0)
+  const dragStartHeight = useRef(0)
+
   // Keep refs in sync so draw callbacks always read current values
   const toolRef = useRef(tool)
   const strokeWidthRef = useRef(strokeWidth)
@@ -37,7 +43,7 @@ export default function DrawingCanvas({ onChange }: DrawingCanvasProps) {
     ctx.lineJoin = 'round'
   }, [])
 
-  // Resize – clears history since ImageData dims change
+  // Resize canvas element when container size changes — clears history since ImageData dims change
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
@@ -55,6 +61,22 @@ export default function DrawingCanvas({ onChange }: DrawingCanvasProps) {
     observer.observe(canvas)
     return () => observer.disconnect()
   }, [applyCtxSettings])
+
+  // Resize-handle drag (vertical)
+  useEffect(() => {
+    const onMouseMove = (e: MouseEvent) => {
+      if (!isDraggingResize.current) return
+      const delta = e.clientY - dragStartY.current
+      setCanvasHeight(Math.max(150, Math.min(800, dragStartHeight.current + delta)))
+    }
+    const onMouseUp = () => { isDraggingResize.current = false }
+    window.addEventListener('mousemove', onMouseMove)
+    window.addEventListener('mouseup', onMouseUp)
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove)
+      window.removeEventListener('mouseup', onMouseUp)
+    }
+  }, [])
 
   const getPos = (e: MouseEvent | TouchEvent): { x: number; y: number } | null => {
     const canvas = canvasRef.current
@@ -78,7 +100,6 @@ export default function DrawingCanvas({ onChange }: DrawingCanvasProps) {
     const ctx = canvas?.getContext('2d')
     if (!ctx || !canvas) return
 
-    // Snapshot before stroke for undo
     historyRef.current.push(ctx.getImageData(0, 0, canvas.width, canvas.height))
     setCanUndo(true)
 
@@ -183,7 +204,6 @@ export default function DrawingCanvas({ onChange }: DrawingCanvasProps) {
     <div className="flex flex-col gap-2">
       {/* Toolbar */}
       <div className="flex items-center gap-1 rounded-lg border border-white/10 bg-[#0a0c13] px-2 py-1.5">
-        {/* Tool */}
         <button onClick={() => setTool('pen')} className={tbBtn(tool === 'pen')} title="Stift">
           ✏️
         </button>
@@ -193,7 +213,6 @@ export default function DrawingCanvas({ onChange }: DrawingCanvasProps) {
 
         <div className="mx-1.5 h-4 w-px bg-white/10" />
 
-        {/* Stroke width */}
         {(['thin', 'medium', 'thick'] as StrokeWidth[]).map((w) => (
           <button
             key={w}
@@ -213,7 +232,6 @@ export default function DrawingCanvas({ onChange }: DrawingCanvasProps) {
 
         <div className="mx-1.5 h-4 w-px bg-white/10" />
 
-        {/* Undo */}
         <button
           onClick={undo}
           disabled={!canUndo}
@@ -223,7 +241,6 @@ export default function DrawingCanvas({ onChange }: DrawingCanvasProps) {
           ↩ Undo
         </button>
 
-        {/* Clear */}
         <button
           onClick={clear}
           disabled={isEmpty}
@@ -237,7 +254,7 @@ export default function DrawingCanvas({ onChange }: DrawingCanvasProps) {
       {/* Canvas */}
       <div
         className="relative overflow-hidden rounded-lg border border-white/10 bg-[#0a0c13]"
-        style={{ height: 280 }}
+        style={{ height: canvasHeight }}
       >
         <canvas
           ref={canvasRef}
@@ -250,6 +267,23 @@ export default function DrawingCanvas({ onChange }: DrawingCanvasProps) {
             <p className="text-sm text-slate-600">Hier zeichnen / schreiben…</p>
           </div>
         )}
+      </div>
+
+      {/* Resize handle */}
+      <div
+        onMouseDown={(e) => {
+          isDraggingResize.current = true
+          dragStartY.current = e.clientY
+          dragStartHeight.current = canvasHeight
+          e.preventDefault()
+        }}
+        className="flex cursor-ns-resize items-center justify-center rounded border border-white/10 py-1 text-slate-600 transition-colors hover:border-white/20 hover:text-slate-400 select-none"
+        title="Höhe anpassen"
+      >
+        <svg width="24" height="8" viewBox="0 0 24 8" fill="currentColor">
+          <rect x="0" y="1" width="24" height="1.5" rx="1" />
+          <rect x="0" y="5" width="24" height="1.5" rx="1" />
+        </svg>
       </div>
     </div>
   )

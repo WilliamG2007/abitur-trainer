@@ -70,7 +70,7 @@ export default function QuestionCard({
   }
 
   const handleScoreConfirmed = (score: number, feedback: string) => {
-    recordAttempt(question.id, score, question.max_points, feedback)
+    recordAttempt(question.id, score, question.max_points, feedback, solution || undefined)
     if (onNext) setTimeout(onNext, 300)
   }
 
@@ -147,7 +147,7 @@ export default function QuestionCard({
         </div>
 
         {inputMode === 'canvas' ? (
-          <DrawingCanvas onChange={setSolution} />
+          <DrawingCanvas key={question.id} onChange={setSolution} />
         ) : (
           <UploadBox onChange={setSolution} />
         )}
