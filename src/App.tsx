@@ -14,6 +14,7 @@ import Register from './pages/Register'
 import Profile from './pages/Profile'
 import Settings from './pages/Settings'
 import Analytics from './pages/Analytics'
+import AuthCallback from './pages/AuthCallback'
 
 // ---------------------------------------------------------------------------
 // Public shell — Navbar always visible, no auth redirect
@@ -67,6 +68,9 @@ export default function App() {
           {/* Public auth pages — no shell */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+
+          {/* Auth callback — no shell, no auth required */}
+          <Route path="/auth/callback" element={<AuthCallback />} />
 
           {/* Public landing — navbar but no redirect */}
           <Route element={<PublicShell />}>

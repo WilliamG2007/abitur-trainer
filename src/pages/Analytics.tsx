@@ -5,9 +5,30 @@ import type { FilteredStats } from '../hooks/useAnalytics'
 import { useAttemptHistory } from '../hooks/useAttemptHistory'
 import type { AttemptEntry } from '../hooks/useAttemptHistory'
 import { useTheme } from '../hooks/useTheme'
+import { TOPICS } from '../data/topics'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
 } from 'recharts'
+
+// Build label lookups from TOPICS
+const SUBTOPIC_LABELS: Record<string, string> = {}
+const TOPIC_LABELS: Record<string, string> = {}
+for (const t of TOPICS) {
+  TOPIC_LABELS[t.id] = t.label
+  for (const s of t.subtopics) SUBTOPIC_LABELS[s.id] = s.label
+}
+
+// Chevron icon
+function Chevron({ open }: { open: boolean }) {
+  return (
+    <svg
+      width="16" height="16" viewBox="0 0 16 16" fill="none"
+      className={`shrink-0 text-gray-400 transition-transform duration-200 dark:text-slate-600 ${open ? 'rotate-180' : ''}`}
+    >
+      <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
 
 const ACCENT: Record<string, { bar: string; text: string; bg: string }> = {
   math:        { bar: 'bg-indigo-500',  text: 'text-indigo-600 dark:text-indigo-300',  bg: 'bg-indigo-500/10' },
@@ -171,16 +192,26 @@ function scoreColor(score: number, max: number) {
 
 function AttemptCard({ entry }: { entry: AttemptEntry }) {
   const [expanded, setExpanded] = useState(false)
+  const [showMusterloesung, setShowMusterloesung] = useState(false)
+
   const date = new Date(entry.attemptedAt).toLocaleDateString('de-DE', {
     day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
   })
   const sc = scoreColor(entry.score, entry.maxScore)
+  const topicLabel = TOPIC_LABELS[entry.topic] ?? entry.topic
+  const subtopicLabel = SUBTOPIC_LABELS[entry.subtopic] ?? entry.subtopic
+  const displayTitle = entry.questionTitle && entry.questionTitle !== '–'
+    ? entry.questionTitle
+    : entry.questionText
+      ? entry.questionText.replace(/\$[^$]*\$/g, '…').slice(0, 80)
+      : subtopicLabel
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-surface dark:border-white/10 overflow-hidden">
+    <div className="overflow-hidden rounded-xl border border-gray-200 bg-surface dark:border-white/10">
+      {/* Collapsed header — always visible */}
       <button
         onClick={() => setExpanded((v) => !v)}
-        className="flex w-full items-start gap-4 p-4 text-left hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors"
+        className="flex w-full items-start gap-4 p-4 text-left transition-colors hover:bg-gray-50 dark:hover:bg-white/[0.02]"
       >
         {/* Solution thumbnail */}
         <div className="shrink-0">
@@ -191,9 +222,9 @@ function AttemptCard({ entry }: { entry: AttemptEntry }) {
               className="h-14 w-20 rounded border border-gray-200 bg-[#0a0c13] object-contain dark:border-white/10"
             />
           ) : entry.solutionText ? (
-            <div className="flex h-14 w-20 items-center justify-center rounded border border-gray-200 bg-gray-50 dark:border-white/10 dark:bg-white/[0.03]">
-              <span className="line-clamp-3 px-1 text-[9px] leading-snug text-gray-500 dark:text-slate-500">
-                {entry.solutionText.slice(0, 80)}
+            <div className="flex h-14 w-20 items-start justify-start overflow-hidden rounded border border-gray-200 bg-gray-50 p-1 dark:border-white/10 dark:bg-white/[0.03]">
+              <span className="line-clamp-4 text-[8px] leading-snug text-gray-500 dark:text-slate-500">
+                {entry.solutionText.slice(0, 120)}
               </span>
             </div>
           ) : (
@@ -204,32 +235,46 @@ function AttemptCard({ entry }: { entry: AttemptEntry }) {
         </div>
 
         {/* Info */}
-        <div className="flex flex-1 flex-col gap-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-medium text-gray-400 dark:text-slate-500">
-              Versuch {entry.attemptNumber}
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          {/* Labels row */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500 dark:bg-white/5 dark:text-slate-500">
+              {topicLabel}
             </span>
-            <span className="text-xs text-gray-300 dark:text-slate-600">·</span>
-            <span className="text-xs text-gray-400 dark:text-slate-500">{date}</span>
+            <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500 dark:bg-white/5 dark:text-slate-500">
+              {subtopicLabel}
+            </span>
+            <span className="text-[10px] text-gray-300 dark:text-slate-700">·</span>
+            <span className="text-[10px] text-gray-400 dark:text-slate-600">Versuch {entry.attemptNumber}</span>
+            <span className="text-[10px] text-gray-300 dark:text-slate-700">·</span>
+            <span className="text-[10px] text-gray-400 dark:text-slate-600">{date}</span>
           </div>
-          <p className="truncate text-sm font-medium text-gray-900 dark:text-white">
-            {entry.questionTitle || entry.subtopic}
-          </p>
+          {/* Title */}
+          <p className="truncate text-sm font-medium text-gray-900 dark:text-white">{displayTitle}</p>
+          {/* Score */}
           <p className={`text-sm font-semibold ${sc}`}>
             {entry.score} / {entry.maxScore} BE
           </p>
         </div>
 
-        <span className="shrink-0 text-gray-400 dark:text-slate-600 mt-1">
-          {expanded ? '▲' : '▼'}
-        </span>
+        <Chevron open={expanded} />
       </button>
 
+      {/* Expanded body */}
       {expanded && (
-        <div className="border-t border-gray-100 dark:border-white/5 flex flex-col gap-4 p-4">
+        <div className="flex flex-col gap-5 border-t border-gray-100 p-4 dark:border-white/5">
+          {/* Full question text */}
+          {entry.questionText && (
+            <div>
+              <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-slate-500">Aufgabe</p>
+              <p className="text-sm leading-relaxed text-gray-700 dark:text-slate-300">{entry.questionText}</p>
+            </div>
+          )}
+
+          {/* Solution */}
           {entry.solutionImage && (
             <div>
-              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-slate-500">Lösung</p>
+              <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-slate-500">Deine Lösung</p>
               <img
                 src={entry.solutionImage}
                 alt="Lösung"
@@ -239,18 +284,38 @@ function AttemptCard({ entry }: { entry: AttemptEntry }) {
           )}
           {entry.solutionText && (
             <div>
-              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-slate-500">Lösung (Text)</p>
+              <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-slate-500">Deine Lösung (Text)</p>
               <pre className="whitespace-pre-wrap rounded-lg border border-gray-100 bg-gray-50 p-4 text-sm text-gray-700 dark:border-white/5 dark:bg-white/[0.02] dark:text-slate-300">
                 {entry.solutionText}
               </pre>
             </div>
           )}
+
+          {/* AI feedback */}
           {entry.feedback && (
             <div>
-              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-slate-500">KI-Feedback</p>
+              <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-slate-500">KI-Feedback</p>
               <p className="whitespace-pre-wrap text-sm leading-relaxed text-gray-700 dark:text-slate-300">
                 {entry.feedback}
               </p>
+            </div>
+          )}
+
+          {/* Musterlösung toggle */}
+          {entry.erwartungshorizont && (
+            <div>
+              <button
+                onClick={() => setShowMusterloesung((v) => !v)}
+                className="flex items-center gap-1.5 text-xs font-medium text-indigo-600 transition-colors hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
+              >
+                <Chevron open={showMusterloesung} />
+                Musterlösung ansehen
+              </button>
+              {showMusterloesung && (
+                <pre className="mt-2 whitespace-pre-wrap rounded-lg border border-indigo-500/20 bg-indigo-500/5 p-4 text-sm text-gray-700 dark:text-slate-300">
+                  {entry.erwartungshorizont}
+                </pre>
+              )}
             </div>
           )}
         </div>

@@ -5,9 +5,10 @@ interface ResultsPanelProps {
   error: string | null
   result: GradingResult | null
   onScoreConfirmed: (score: number, feedback: string) => void
+  onRetry?: () => void
 }
 
-export default function ResultsPanel({ loading, error, result, onScoreConfirmed }: ResultsPanelProps) {
+export default function ResultsPanel({ loading, error, result, onScoreConfirmed, onRetry }: ResultsPanelProps) {
   if (loading) {
     return (
       <div className="flex items-center gap-3 rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-5">
@@ -22,6 +23,14 @@ export default function ResultsPanel({ loading, error, result, onScoreConfirmed 
       <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-5">
         <p className="text-sm font-medium text-red-500 dark:text-red-400">Fehler bei der Bewertung</p>
         <p className="mt-1 text-xs text-gray-600 dark:text-slate-400">{error}</p>
+        {onRetry && (
+          <button
+            onClick={onRetry}
+            className="mt-3 rounded-lg border border-red-500/30 px-4 py-1.5 text-xs font-medium text-red-500 transition-colors hover:bg-red-500/10 dark:text-red-400"
+          >
+            Erneut versuchen
+          </button>
+        )}
       </div>
     )
   }
@@ -31,7 +40,11 @@ export default function ResultsPanel({ loading, error, result, onScoreConfirmed 
   const { score, maxPoints, feedback } = result
   const pct = Math.round((score / maxPoints) * 100)
   const scoreColor =
-    score >= maxPoints ? 'text-emerald-500 dark:text-emerald-400' : score > 0 ? 'text-amber-500 dark:text-amber-400' : 'text-red-500 dark:text-red-400'
+    score >= maxPoints
+      ? 'text-emerald-500 dark:text-emerald-400'
+      : score > 0
+        ? 'text-amber-500 dark:text-amber-400'
+        : 'text-red-500 dark:text-red-400'
   const icon = score >= maxPoints ? '✅' : score > 0 ? '🟡' : '❌'
 
   return (

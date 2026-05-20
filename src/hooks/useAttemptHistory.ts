@@ -6,6 +6,8 @@ export interface AttemptEntry {
   id: string
   questionId: string
   questionTitle: string
+  questionText: string
+  erwartungshorizont: string
   subtopic: string
   topic: string
   subject: string
@@ -15,7 +17,7 @@ export interface AttemptEntry {
   solutionImage: string | null
   solutionText: string | null
   attemptedAt: string
-  attemptNumber: number   // 1-based index within this question's attempts (oldest = 1)
+  attemptNumber: number
 }
 
 type RawRow = {
@@ -27,7 +29,14 @@ type RawRow = {
   solution_image: string | null
   solution_text: string | null
   attempted_at: string
-  questions: { title: string; subtopic: string; topic: string; subject: string } | null
+  questions: {
+    title: string
+    text: string
+    erwartungshorizont: string
+    subtopic: string
+    topic: string
+    subject: string
+  } | null
 }
 
 export function useAttemptHistory() {
@@ -43,15 +52,13 @@ export function useAttemptHistory() {
 
     supabase
       .from('user_attempts')
-      .select('id, question_id, score, max_score, ai_feedback, solution_image, solution_text, attempted_at, questions(title, subtopic, topic, subject)')
+      .select('id, question_id, score, max_score, ai_feedback, solution_image, solution_text, attempted_at, questions(title, text, erwartungshorizont, subtopic, topic, subject)')
       .eq('user_id', user.id)
-      .order('attempted_at', { ascending: true })  // oldest first so attempt numbers are correct
+      .order('attempted_at', { ascending: true })
       .then(({ data, error: err }) => {
         if (err) { setError(err.message); setLoading(false); return }
 
         const rows = (data ?? []) as unknown as RawRow[]
-
-        // Assign attempt numbers per question
         const countPerQuestion: Record<string, number> = {}
         const entries: AttemptEntry[] = rows.map((row) => {
           const n = (countPerQuestion[row.question_id] ?? 0) + 1
@@ -60,6 +67,8 @@ export function useAttemptHistory() {
             id: row.id,
             questionId: row.question_id,
             questionTitle: row.questions?.title ?? '–',
+            questionText: row.questions?.text ?? '',
+            erwartungshorizont: row.questions?.erwartungshorizont ?? '',
             subtopic: row.questions?.subtopic ?? '',
             topic: row.questions?.topic ?? '',
             subject: row.questions?.subject ?? '',
@@ -73,7 +82,6 @@ export function useAttemptHistory() {
           }
         })
 
-        // Reverse to show newest first in UI
         setAttempts(entries.reverse())
         setLoading(false)
       })

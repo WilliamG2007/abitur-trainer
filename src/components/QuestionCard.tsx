@@ -209,6 +209,7 @@ export default function QuestionCard({
           error={gradingError}
           result={gradingResult}
           onScoreConfirmed={handleScoreConfirmed}
+          onRetry={() => setGradingError(null)}
         />
       )}
 

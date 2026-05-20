@@ -40,6 +40,7 @@ const TOPIC_ICONS: Record<Topic, string> = {
   'analytische-geometrie': '📐',
 }
 
+// Small dot used in the subtopic list
 function QuestionDot({
   state,
   score,
@@ -67,6 +68,51 @@ function QuestionDot({
       className={`h-3 w-3 rounded-full transition-colors ${colors[state]}`}
     />
   )
+}
+
+// Numbered circle used in the question nav bar
+function NavCircle({
+  number,
+  state,
+  active,
+  onClick,
+}: {
+  number: number
+  state: 'unattempted' | 'full' | 'partial' | 'zero'
+  active: boolean
+  onClick: () => void
+}) {
+  const base = 'flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition-colors'
+  const colors = {
+    unattempted: 'bg-gray-200 text-gray-600 hover:bg-gray-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600',
+    full: 'bg-emerald-500 text-white hover:bg-emerald-400',
+    partial: 'bg-amber-400 text-white hover:bg-amber-300',
+    zero: 'bg-red-500 text-white hover:bg-red-400',
+  }
+  const ring = active ? 'ring-2 ring-offset-2 ring-indigo-500 dark:ring-offset-[#0d0f18]' : ''
+
+  return (
+    <button onClick={onClick} className={`${base} ${colors[state]} ${ring}`}>
+      {number}
+    </button>
+  )
+}
+
+// Compute smart start index: first unattempted, else lowest scoring
+function smartStartIdx(
+  qs: Question[],
+  attempts: Record<string, { score: number; maxPoints: number }>,
+): number {
+  const firstUnattempted = qs.findIndex((q) => !attempts[q.id])
+  if (firstUnattempted !== -1) return firstUnattempted
+
+  return qs.reduce((bestIdx, q, idx) => {
+    const a = attempts[q.id]
+    const pct = a ? a.score / a.maxPoints : 0
+    const bestA = attempts[qs[bestIdx].id]
+    const bestPct = bestA ? bestA.score / bestA.maxPoints : 0
+    return pct < bestPct ? idx : bestIdx
+  }, 0)
 }
 
 function TopicsView({
@@ -128,9 +174,7 @@ function TopicsView({
               <div className="mt-auto">
                 <div className="mb-1 flex justify-between text-xs text-gray-400 dark:text-slate-500">
                   <span>Gesamt</span>
-                  <span>
-                    {attempted}/{total}
-                  </span>
+                  <span>{attempted}/{total}</span>
                 </div>
                 <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-white/5">
                   <div
@@ -224,10 +268,10 @@ function SubtopicsView({
                   </div>
 
                   <button
-                    onClick={() => onSelectSubtopic(sub.id, 0)}
+                    onClick={() => onSelectSubtopic(sub.id, smartStartIdx(qs, attempts))}
                     className={`text-xs font-medium ${accent.text} hover:underline`}
                   >
-                    Aufgaben öffnen →
+                    Aufgaben üben →
                   </button>
                 </>
               ) : (
@@ -258,7 +302,7 @@ function QuestionView({
   onNavigate: (idx: number) => void
   onBack: () => void
 }) {
-  const { attempts } = useProgress()
+  const { attempts, getQuestionState } = useProgress()
   const topic = TOPICS.find((t) => t.id === topicId)!
   const subtopic = topic.subtopics.find((s) => s.id === subtopicId)
   const accent = TOPIC_ACCENT[topicId]
@@ -273,6 +317,7 @@ function QuestionView({
 
   return (
     <div className="flex flex-col gap-5">
+      {/* Breadcrumb */}
       <div className="flex items-center gap-3">
         <button
           onClick={onBack}
@@ -285,6 +330,7 @@ function QuestionView({
         <span className="text-sm text-gray-500 dark:text-slate-400">{subtopic?.label ?? subtopicId}</span>
       </div>
 
+      {/* Lernen / Üben tabs */}
       <div className="flex w-fit gap-1 rounded-lg border border-gray-200 bg-gray-50 p-1 dark:border-white/10 dark:bg-white/[0.03]">
         <button
           onClick={() => setTab('lernen')}
@@ -311,13 +357,48 @@ function QuestionView({
       {tab === 'lernen' ? (
         <LearnMode subtopic={subtopicId} />
       ) : (
-        <QuestionCard
-          question={question}
-          questionNumber={questionIdx + 1}
-          totalQuestions={qs.length}
-          onPrev={questionIdx > 0 ? () => onNavigate(questionIdx - 1) : undefined}
-          onNext={questionIdx < qs.length - 1 ? () => onNavigate(questionIdx + 1) : undefined}
-        />
+        <>
+          {/* Question navigation bar */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => onNavigate(questionIdx - 1)}
+              disabled={questionIdx === 0}
+              className="shrink-0 rounded px-2 py-1 text-xs text-gray-400 transition-colors hover:text-gray-900 disabled:opacity-30 dark:text-slate-500 dark:hover:text-white"
+            >
+              ←
+            </button>
+
+            <div className="flex flex-1 flex-wrap gap-1.5 overflow-x-auto">
+              {qs.map((q, idx) => {
+                return (
+                  <NavCircle
+                    key={q.id}
+                    number={idx + 1}
+                    state={getQuestionState(q.id, q.max_points)}
+                    active={idx === questionIdx}
+                    onClick={() => onNavigate(idx)}
+                  />
+                )
+              })}
+            </div>
+
+            <button
+              onClick={() => onNavigate(questionIdx + 1)}
+              disabled={questionIdx === qs.length - 1}
+              className="shrink-0 rounded px-2 py-1 text-xs text-gray-400 transition-colors hover:text-gray-900 disabled:opacity-30 dark:text-slate-500 dark:hover:text-white"
+            >
+              →
+            </button>
+          </div>
+
+          <QuestionCard
+            question={question}
+            questionNumber={questionIdx + 1}
+            totalQuestions={qs.length}
+            onPrev={questionIdx > 0 ? () => onNavigate(questionIdx - 1) : undefined}
+            onNext={questionIdx < qs.length - 1 ? () => onNavigate(questionIdx + 1) : undefined}
+          />
+        </>
       )}
     </div>
   )
