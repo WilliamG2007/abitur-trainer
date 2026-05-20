@@ -15,12 +15,20 @@ import katex from 'katex'
 
 // ── KaTeX helpers ────────────────────────────────────────────────────────────
 
+// Custom macros used in Bayern Abitur LaTeX source files
+const KATEX_MACROS: Record<string, string> = {
+  '\\e':  'e',                  // \e^x  → e^x
+  '\\D':  '\\displaystyle',     // \D\frac → \displaystyle\frac
+  '\\m':  '\\mathrm{#1}',       // \m{f_a} → \mathrm{f_a}
+}
+
 function renderKatex(s: string, display: boolean): string {
   try {
     return katex.renderToString(s.trim(), {
       displayMode: display,
       throwOnError: false,
       strict: false,
+      macros: KATEX_MACROS,
     })
   } catch {
     return s
@@ -34,6 +42,8 @@ type Block =
   | { kind: 'list'; ordered: boolean; start: number; items: string[] }
 
 function parseBlocks(input: string): Block[] {
+  // Strip \newcommand declarations
+  input = input.replace(/\\newcommand\{[^}]+\}(?:\[\d+\])?\{[^}]*\}\n?/g, '')
   // Strip LaTeX line comments (% not preceded by \)
   input = input.replace(/(^|[^\\])%[^\n]*/gm, '$1')
 

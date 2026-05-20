@@ -18,6 +18,7 @@ export const TOPICS: { id: Topic; label: string; subtopics: Subtopic[] }[] = [
       { id: 'logarithmusfunktion', label: 'Logarithmusfunktion' },
       { id: 'integralrechnung', label: 'Integralrechnung' },
       { id: 'anwendungen', label: 'Anwendungen der Analysis' },
+      { id: 'anwendungen-erweitert', label: 'Anwendungen (Erweitert)' },
     ],
   },
   {

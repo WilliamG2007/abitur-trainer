@@ -188,6 +188,92 @@ const content: LearnContent[] = [
     ],
   },
 
+  {
+    subtopic: 'signifikanztest',
+    concept:
+      'Beim einseitigen Signifikanztest prüfst du, ob eine Beobachtung mit einer angenommenen Wahrscheinlichkeit $p_0$ vereinbar ist oder ob es Belege gegen diese Annahme gibt. Du legst zuerst das Signifikanzniveau $\\alpha$ fest (meist $5\\,\\%$), bestimmst dann den Ablehnungsbereich $K$ so, dass $P(X \\in K) \\leq \\alpha$ gilt, und vergleichst den beobachteten Wert mit $K$.',
+    formula: {
+      notation: '$$H_0: p = p_0 \\quad \\text{vs.} \\quad H_1: p < p_0 \\text{ (oder } p > p_0\\text{)}$$',
+      parameters: [
+        { symbol: '$\\alpha$', description: 'Signifikanzniveau (z.B. $0{,}05$)' },
+        { symbol: '$K$', description: 'Ablehnungsbereich (kritischer Bereich)' },
+        { symbol: '$H_0$', description: 'Nullhypothese (zu widerlegende Annahme)' },
+        { symbol: '$H_1$', description: 'Alternativhypothese' },
+        { symbol: '$P(X \\leq k) \\leq \\alpha$', description: 'Bedingung für linksseitigen Ablehnungsbereich' },
+      ],
+    },
+    example: {
+      question:
+        'Ein Würfel soll fair sein ($p_0 = \\tfrac{1}{6}$ für eine 6). In 60 Würfen erscheint die 6 nur 4-mal. Teste auf Niveau $\\alpha = 5\\,\\%$, ob die 6 unterdurchschnittlich häufig fällt.',
+      steps: [
+        {
+          instruction: 'Hypothesen und Modell aufstellen',
+          calculation: '$H_0: p = \\tfrac{1}{6}, \\quad H_1: p < \\tfrac{1}{6}, \\quad X \\sim B\\!\\left(60;\\,\\tfrac{1}{6}\\right)$',
+          result: 'Linksseitiger Test, $\\alpha = 0{,}05$',
+        },
+        {
+          instruction: 'Ablehnungsbereich $K = \\{0, 1, \\ldots, k^*\\}$ bestimmen',
+          calculation:
+            '$P(X \\leq 5) \\approx 0{,}076 > 0{,}05$ \\quad (noch nicht im Ablehnungsbereich)\n$P(X \\leq 4) \\approx 0{,}033 \\leq 0{,}05$ \\quad (Grenze gefunden)',
+          result: '$K = \\{0, 1, 2, 3, 4\\}$',
+        },
+        {
+          instruction: 'Beobachteten Wert mit $K$ vergleichen',
+          calculation: '$x = 4 \\in K = \\{0,1,2,3,4\\}$',
+          result: '$H_0$ wird abgelehnt – auf dem $5\\,\\%$-Niveau ist die 6 signifikant zu selten.',
+        },
+      ],
+    },
+    merkhilfe: [
+      'Ablehnungsbereich immer aus $P(X \\leq k) \\leq \\alpha$ (links) oder $P(X \\geq k) \\leq \\alpha$ (rechts) bestimmen – nicht schätzen.',
+      'Der Ablehnungsbereich enthält ganze Zahlen, keine Dezimalwerte.',
+      '"$H_0$ ablehnen" bedeutet nicht, dass $H_1$ sicher wahr ist – nur, dass die Daten nicht mit $H_0$ vereinbar sind.',
+    ],
+  },
+
+  {
+    subtopic: 'normalverteilung',
+    concept:
+      'Die Normalverteilung $N(\\mu;\\,\\sigma^2)$ beschreibt viele natürliche Messgrößen. Ihr Graph ist die Glockenkurve, symmetrisch um den Erwartungswert $\\mu$. Mit der Standardisierung $Z = \\dfrac{X - \\mu}{\\sigma}$ lassen sich alle Wahrscheinlichkeiten auf die Standardnormalverteilung $N(0;1)$ zurückführen und am GTR oder mit der Tabelle ablesen.',
+    formula: {
+      notation: '$$Z = \\frac{X - \\mu}{\\sigma}, \\qquad Z \\sim N(0;\\,1)$$',
+      parameters: [
+        { symbol: '$\\mu$', description: 'Erwartungswert (Lage der Glockenkurve)' },
+        { symbol: '$\\sigma$', description: 'Standardabweichung (Breite der Glocke)' },
+        { symbol: '$\\sigma^2$', description: 'Varianz' },
+        { symbol: '$\\Phi(z) = P(Z \\leq z)$', description: 'Verteilungsfunktion der Standardnormalverteilung' },
+        { symbol: '$P(a \\leq X \\leq b) = \\Phi\\!\\left(\\frac{b-\\mu}{\\sigma}\\right) - \\Phi\\!\\left(\\frac{a-\\mu}{\\sigma}\\right)$', description: 'Intervallwahrscheinlichkeit' },
+      ],
+    },
+    example: {
+      question:
+        'Körpergrößen von Männern: $\\mu = 178\\,\\text{cm}$, $\\sigma = 7\\,\\text{cm}$. Wie groß ist die Wahrscheinlichkeit, dass ein zufällig gewählter Mann zwischen 170 und 185 cm groß ist?',
+      steps: [
+        {
+          instruction: 'Standardisieren: Grenzen in $z$-Werte umrechnen',
+          calculation:
+            '$z_1 = \\dfrac{170 - 178}{7} \\approx -1{,}14, \\qquad z_2 = \\dfrac{185 - 178}{7} = 1{,}00$',
+          result: '$P(170 \\leq X \\leq 185) = \\Phi(1{,}00) - \\Phi(-1{,}14)$',
+        },
+        {
+          instruction: '$\\Phi$-Werte ablesen (Tabelle oder GTR)',
+          calculation: '$\\Phi(1{,}00) \\approx 0{,}8413, \\qquad \\Phi(-1{,}14) \\approx 0{,}1271$',
+          result: 'Werte der Standardnormalverteilung',
+        },
+        {
+          instruction: 'Differenz bilden',
+          calculation: '$P = 0{,}8413 - 0{,}1271 = 0{,}7142$',
+          result: '$P(170 \\leq X \\leq 185) \\approx 71{,}4\\,\\%$',
+        },
+      ],
+    },
+    merkhilfe: [
+      '$\\Phi(-z) = 1 - \\Phi(z)$ – negative $z$-Werte lassen sich auf positive zurückführen (Symmetrie der Glockenkurve).',
+      'Faustregel: $\\approx 68\\,\\%$ der Werte liegen in $[\\mu - \\sigma;\\, \\mu + \\sigma]$, ca. $95\\,\\%$ in $[\\mu - 2\\sigma;\\, \\mu + 2\\sigma]$.',
+      'Beim GTR: normalcdf$(a,\\, b,\\, \\mu,\\, \\sigma)$ liefert $P(a \\leq X \\leq b)$ direkt ohne Standardisierung.',
+    ],
+  },
+
   // ── Geometrie ────────────────────────────────────────────────────────────────
 
   {
