@@ -15,6 +15,7 @@ import Profile from './pages/Profile'
 import Settings from './pages/Settings'
 import Analytics from './pages/Analytics'
 import AuthCallback from './pages/AuthCallback'
+import Pricing from './pages/Pricing'
 
 // ---------------------------------------------------------------------------
 // Public shell — Navbar always visible, no auth redirect
@@ -72,9 +73,10 @@ export default function App() {
           {/* Auth callback — no shell, no auth required */}
           <Route path="/auth/callback" element={<AuthCallback />} />
 
-          {/* Public landing — navbar but no redirect */}
+          {/* Public landing + pricing — navbar but no redirect */}
           <Route element={<PublicShell />}>
             <Route path="/" element={<Landing />} />
+            <Route path="/pricing" element={<Pricing />} />
           </Route>
 
           {/* Protected: all subject + account pages */}

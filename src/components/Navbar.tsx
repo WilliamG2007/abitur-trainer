@@ -105,6 +105,18 @@ function UserMenu() {
 function GuestButtons() {
   return (
     <div className="flex items-center gap-2">
+      <NavLink
+        to="/pricing"
+        className={({ isActive }) =>
+          `rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+            isActive
+              ? 'text-indigo-600 dark:text-indigo-400'
+              : 'text-gray-500 hover:text-gray-900 dark:text-slate-400 dark:hover:text-white'
+          }`
+        }
+      >
+        Preise
+      </NavLink>
       <Link
         to="/login"
         className="rounded-lg px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900 dark:text-slate-300 dark:hover:text-white"
@@ -152,6 +164,18 @@ export default function Navbar() {
                 {label}
               </NavLink>
             ))}
+            <NavLink
+              to="/pricing"
+              className={({ isActive }) =>
+                `rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                  isActive
+                    ? 'bg-indigo-600 text-white'
+                    : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white'
+                }`
+              }
+            >
+              Preise
+            </NavLink>
           </nav>
         )}
 
