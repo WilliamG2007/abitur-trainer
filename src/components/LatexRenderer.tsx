@@ -95,6 +95,10 @@ type Seg =
 function parseInline(input: string): Seg[] {
   // Strip \tiny{...} — just keep the content
   input = input.replace(/\\tiny\{([^}]*)\}/g, '$1')
+  // LaTeX special-character escapes → literal characters
+  input = input.replace(/\\%/g, '%')
+  input = input.replace(/\\&/g, '&')
+  input = input.replace(/\\_/g, '_')
 
   const segs: Seg[] = []
   let i = 0

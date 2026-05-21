@@ -1,23 +1,15 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import PricingToggle, { type Period, PERIOD_META } from '../components/PricingToggle'
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// ── Shared icons ─────────────────────────────────────────────────────────────
 
 function Check() {
   return (
-    <svg className="h-4 w-4 shrink-0 text-emerald-500" viewBox="0 0 16 16" fill="none">
+    <svg className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" viewBox="0 0 16 16" fill="none">
       <circle cx="8" cy="8" r="7.25" stroke="currentColor" strokeWidth="1.5" />
       <path d="M5 8l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
-}
-
-function Cross() {
-  return (
-    <svg className="h-4 w-4 shrink-0 text-gray-300 dark:text-slate-700" viewBox="0 0 16 16" fill="none">
-      <circle cx="8" cy="8" r="7.25" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M6 6l4 4M10 6l-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   )
 }
@@ -33,88 +25,234 @@ function Chevron({ open }: { open: boolean }) {
   )
 }
 
-// ── Feature row ───────────────────────────────────────────────────────────────
+// ── Pricing data ──────────────────────────────────────────────────────────────
 
-function Feature({ text, included }: { text: string; included: boolean }) {
-  return (
-    <li className="flex items-start gap-2.5">
-      {included ? <Check /> : <Cross />}
-      <span className={`text-sm ${included ? 'text-gray-700 dark:text-slate-300' : 'text-gray-400 dark:text-slate-600'}`}>
-        {text}
-      </span>
-    </li>
-  )
+interface TierPricing {
+  monthly: { total: string; perMonth: string }
+  '3m':    { total: string; perMonth: string }
+  '6m':    { total: string; perMonth: string }
+  '12m':   { total: string; perMonth: string }
+  baseMonthlyNum: number   // for computing savings
 }
 
-// ── Pricing cards ─────────────────────────────────────────────────────────────
-
-interface PlanProps {
+interface Tier {
+  id: string
   label: string
   badge?: string
-  price: string
-  billing: string
-  features: { text: string; included: boolean }[]
-  ctaLabel: string
-  ctaTo: string
   highlighted?: boolean
+  includesLabel?: string
+  features: string[]
+  ctaLabel: string
+  pricing: TierPricing | null   // null = free
 }
 
-function PlanCard({ label, badge, price, billing, features, ctaLabel, ctaTo, highlighted }: PlanProps) {
+const TIERS: Tier[] = [
+  {
+    id: 'free',
+    label: 'Kostenlos',
+    features: [
+      '30 Bewertungen/Monat',
+      'Learn Mode (alle Themen)',
+      'Basis-Statistiken',
+      'Email Support',
+    ],
+    ctaLabel: 'Kostenlos starten',
+    pricing: null,
+  },
+  {
+    id: 'pro',
+    label: 'Pro',
+    badge: 'Beliebt',
+    highlighted: true,
+    includesLabel: 'Alles von Kostenlos +',
+    features: [
+      '150 Bewertungen/Monat',
+      'Alle Themen & Fragen',
+      'Basis-Fortschrittsberichte',
+      'Priority Email Support',
+    ],
+    ctaLabel: 'Pro starten',
+    pricing: {
+      baseMonthlyNum: 4.99,
+      monthly: { total: '€4,99', perMonth: '€4,99/Monat' },
+      '3m':    { total: '€14,24', perMonth: '€4,75/Monat' },
+      '6m':    { total: '€26,94', perMonth: '€4,49/Monat' },
+      '12m':   { total: '€47,99', perMonth: '€3,99/Monat' },
+    },
+  },
+  {
+    id: 'premium',
+    label: 'Premium',
+    includesLabel: 'Alles von Pro +',
+    features: [
+      '300 Bewertungen/Monat',
+      'Erweiterte Analysen (nach Thema)',
+      'Detaillierte Fortschrittsberichte',
+      'Priority Email Support',
+    ],
+    ctaLabel: 'Premium starten',
+    pricing: {
+      baseMonthlyNum: 7.99,
+      monthly: { total: '€7,99', perMonth: '€7,99/Monat' },
+      '3m':    { total: '€22,79', perMonth: '€7,60/Monat' },
+      '6m':    { total: '€43,14', perMonth: '€7,19/Monat' },
+      '12m':   { total: '€76,79', perMonth: '€6,40/Monat' },
+    },
+  },
+  {
+    id: 'ultra',
+    label: 'Ultra',
+    includesLabel: 'Alles von Premium +',
+    features: [
+      '500 Bewertungen/Monat',
+      'Wöchentliche Analysen & Berichte',
+      'Early Access zu neuen Fächern',
+      'Erweiterter Fragenkatalog',
+      'Super Priority Support',
+    ],
+    ctaLabel: 'Ultra starten',
+    pricing: {
+      baseMonthlyNum: 11.99,
+      monthly: { total: '€11,99', perMonth: '€11,99/Monat' },
+      '3m':    { total: '€34,24', perMonth: '€11,41/Monat' },
+      '6m':    { total: '€64,74', perMonth: '€10,79/Monat' },
+      '12m':   { total: '€114,99', perMonth: '€9,58/Monat' },
+    },
+  },
+  {
+    id: 'unlimited',
+    label: 'Unlimited',
+    includesLabel: 'Alles von Ultra +',
+    features: [
+      'Unbegrenzte Bewertungen',
+      'Vollständige Mock-Abiturprüfungen',
+      'Exam Score Predictions',
+      'VIP Super Priority Support',
+    ],
+    ctaLabel: 'Unlimited starten',
+    pricing: {
+      baseMonthlyNum: 15.99,
+      monthly: { total: '€15,99', perMonth: '€15,99/Monat' },
+      '3m':    { total: '€45,74', perMonth: '€15,25/Monat' },
+      '6m':    { total: '€86,34', perMonth: '€14,39/Monat' },
+      '12m':   { total: '€153,59', perMonth: '€12,80/Monat' },
+    },
+  },
+]
+
+// ── Savings computation ───────────────────────────────────────────────────────
+
+function fmtEur(n: number): string {
+  return '€' + n.toFixed(2).replace('.', ',')
+}
+
+function computeSavings(tier: Tier, period: Period): { pct: number; amount: string } | null {
+  if (!tier.pricing || period === 'monthly') return null
+  const { months, discPct } = PERIOD_META[period]
+  const saved = tier.pricing.baseMonthlyNum * months * (discPct / 100)
+  return { pct: discPct, amount: fmtEur(saved) }
+}
+
+// ── Plan card ─────────────────────────────────────────────────────────────────
+
+function PlanCard({ tier, period }: { tier: Tier; period: Period }) {
   const { user } = useAuth()
-  const dest = ctaTo === '/register' && user ? '/math' : ctaTo
+  const dest = user ? '/math' : '/register'
+  const savings = computeSavings(tier, period)
+  const p = tier.pricing
+  const isFree = !p
 
   return (
     <div
-      className={`relative flex flex-col rounded-2xl border p-7 transition-all duration-200 ${
-        highlighted
-          ? 'border-indigo-500 bg-indigo-600/5 shadow-xl shadow-indigo-500/10 dark:bg-indigo-500/5 scale-[1.03]'
+      className={`relative flex flex-col rounded-2xl border transition-all duration-200 ${
+        tier.highlighted
+          ? 'border-indigo-500 bg-indigo-600/5 shadow-xl shadow-indigo-500/10 dark:bg-indigo-500/5'
           : 'border-gray-200 bg-white hover:border-gray-300 dark:border-white/10 dark:bg-surface dark:hover:border-white/20'
       }`}
     >
       {/* Badge */}
-      {badge && (
-        <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-indigo-600 px-3 py-0.5 text-xs font-semibold text-white shadow">
-          {badge}
+      {tier.badge && (
+        <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-indigo-600 px-3 py-0.5 text-xs font-semibold text-white shadow">
+          {tier.badge}
         </span>
       )}
 
-      {/* Plan name */}
-      <p className={`text-xs font-semibold uppercase tracking-widest ${highlighted ? 'text-indigo-500 dark:text-indigo-400' : 'text-gray-400 dark:text-slate-500'}`}>
-        {label}
-      </p>
+      <div className="flex flex-1 flex-col p-5">
+        {/* Tier name */}
+        <p className={`text-xs font-semibold uppercase tracking-widest ${tier.highlighted ? 'text-indigo-500 dark:text-indigo-400' : 'text-gray-400 dark:text-slate-500'}`}>
+          {tier.label}
+        </p>
 
-      {/* Price */}
-      <div className="mt-4 flex items-end gap-1">
-        <span className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white">{price}</span>
-        <span className="mb-1 text-sm text-gray-400 dark:text-slate-500">{billing}</span>
+        {/* Price block */}
+        {isFree ? (
+          <div className="mt-3">
+            <div className="flex items-end gap-1">
+              <span className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">€0</span>
+            </div>
+            <p className="mt-1 text-xs text-gray-400 dark:text-slate-500">Für immer kostenlos</p>
+          </div>
+        ) : (
+          <div className="mt-3">
+            {period === 'monthly' ? (
+              <>
+                <div className="flex items-end gap-1">
+                  <span className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">{p.monthly.total}</span>
+                </div>
+                <p className="mt-1 text-xs text-gray-400 dark:text-slate-500">/Monat</p>
+              </>
+            ) : (
+              <>
+                <div className="flex items-end gap-1">
+                  <span className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">{p[period].total}</span>
+                </div>
+                <p className="mt-1 text-xs text-gray-400 dark:text-slate-500">{p[period].perMonth}</p>
+                {savings && (
+                  <p className="mt-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                    Sparen Sie {savings.pct}% ({savings.amount})
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Divider */}
+        <div className="my-5 h-px w-full bg-gray-100 dark:bg-white/5" />
+
+        {/* "Includes all of X" */}
+        {tier.includesLabel && (
+          <p className="mb-3 text-xs font-medium text-gray-400 dark:text-slate-500 italic">
+            {tier.includesLabel}
+          </p>
+        )}
+
+        {/* Features */}
+        <ul className="flex flex-1 flex-col gap-2.5">
+          {tier.features.map((f) => (
+            <li key={f} className="flex items-start gap-2">
+              <Check />
+              <span className="text-xs text-gray-700 dark:text-slate-300">{f}</span>
+            </li>
+          ))}
+        </ul>
+
+        {/* CTA */}
+        <Link
+          to={dest}
+          className={`mt-6 block rounded-xl py-2.5 text-center text-sm font-semibold transition-colors ${
+            tier.highlighted
+              ? 'bg-indigo-600 text-white hover:bg-indigo-500'
+              : 'border border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50 dark:border-white/10 dark:text-slate-300 dark:hover:border-white/20 dark:hover:bg-white/5'
+          }`}
+        >
+          {tier.ctaLabel}
+        </Link>
       </div>
-
-      {/* Divider */}
-      <div className="my-6 h-px w-full bg-gray-100 dark:bg-white/5" />
-
-      {/* Features */}
-      <ul className="flex flex-col gap-3">
-        {features.map((f) => (
-          <Feature key={f.text} text={f.text} included={f.included} />
-        ))}
-      </ul>
-
-      {/* CTA */}
-      <Link
-        to={dest}
-        className={`mt-8 block rounded-xl py-2.5 text-center text-sm font-semibold transition-colors ${
-          highlighted
-            ? 'bg-indigo-600 text-white hover:bg-indigo-500'
-            : 'border border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50 dark:border-white/10 dark:text-slate-300 dark:hover:border-white/20 dark:hover:bg-white/5'
-        }`}
-      >
-        {ctaLabel}
-      </Link>
     </div>
   )
 }
 
-// ── FAQ accordion ─────────────────────────────────────────────────────────────
+// ── FAQ ───────────────────────────────────────────────────────────────────────
 
 function FaqItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false)
@@ -133,58 +271,6 @@ function FaqItem({ q, a }: { q: string; a: string }) {
     </div>
   )
 }
-
-// ── Data ──────────────────────────────────────────────────────────────────────
-
-const plans: PlanProps[] = [
-  {
-    label: 'Kostenlos',
-    price: '€0',
-    billing: 'Für immer',
-    features: [
-      { text: '30 Bewertungen / Monat', included: true },
-      { text: 'Learn Mode (alle Kapitel)', included: true },
-      { text: 'Basis-Statistiken', included: true },
-      { text: 'Analysis + Stochastik Fragen', included: true },
-      { text: 'Alle Fächer & Fragen', included: false },
-      { text: 'Priority Support', included: false },
-    ],
-    ctaLabel: 'Kostenlos starten',
-    ctaTo: '/register',
-  },
-  {
-    label: 'Pro',
-    badge: 'Beliebt',
-    price: '€4,99',
-    billing: '/Monat',
-    highlighted: true,
-    features: [
-      { text: '100 Bewertungen / Monat', included: true },
-      { text: 'Alle verfügbaren Fächer & Fragen', included: true },
-      { text: 'Detaillierte Statistiken', included: true },
-      { text: 'Fortschrittsberichte', included: true },
-      { text: 'Email Support', included: true },
-      { text: 'Unlimited Bewertungen', included: false },
-    ],
-    ctaLabel: 'Pro starten',
-    ctaTo: '/register',
-  },
-  {
-    label: 'Premium',
-    price: '€9,99',
-    billing: '/Monat',
-    features: [
-      { text: '1.000 Bewertungen / Monat', included: true },
-      { text: 'Alle Inhalte', included: true },
-      { text: 'Erweiterte Analysen', included: true },
-      { text: 'Early Access zu neuen Fächern', included: true },
-      { text: 'Priority Support', included: true },
-      { text: 'Extra Bewertungen kaufbar (€0,02 / Stk.)', included: true },
-    ],
-    ctaLabel: 'Premium starten',
-    ctaTo: '/register',
-  },
-]
 
 const faqs = [
   {
@@ -208,12 +294,14 @@ const faqs = [
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function Pricing() {
+  const [period, setPeriod] = useState<Period>('monthly')
+
   return (
     <div className="min-h-screen bg-white dark:bg-[#0d0f18]">
-      <div className="mx-auto max-w-5xl px-6 py-20">
 
-        {/* ── Hero ── */}
-        <div className="mb-16 text-center">
+      {/* ── Hero (untouched) ── */}
+      <div className="mx-auto max-w-5xl px-6 pt-20 pb-12">
+        <div className="text-center">
           <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-5xl">
             Einfache, transparente Preise
           </h1>
@@ -221,52 +309,36 @@ export default function Pricing() {
             Wähle den Plan, der zu dir passt.
           </p>
         </div>
+      </div>
 
-        {/* ── Cards ── */}
-        <div className="mb-20 grid gap-6 sm:grid-cols-3 items-start">
-          {plans.map((plan) => (
-            <PlanCard key={plan.label} {...plan} />
+      {/* ── Toggle ── */}
+      <div className="mx-auto max-w-5xl px-6 pb-10">
+        <PricingToggle period={period} onChange={setPeriod} />
+      </div>
+
+      {/* ── Cards ── */}
+      <div className="mx-auto max-w-7xl px-6 pb-20">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          {TIERS.map((tier) => (
+            <PlanCard key={tier.id} tier={tier} period={period} />
           ))}
         </div>
+      </div>
 
-        {/* ── Extra usage box ── */}
-        <div className="mb-20 overflow-hidden rounded-2xl border border-violet-500/30 bg-violet-600/5 dark:bg-violet-500/5">
-          <div className="flex flex-col gap-4 p-8 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-violet-500 dark:text-violet-400">
-                Premium-Feature
-              </p>
-              <h2 className="mt-2 text-lg font-bold text-gray-900 dark:text-white">
-                Bewertungen aufgebraucht?
-              </h2>
-              <p className="mt-1 max-w-md text-sm text-gray-500 dark:text-slate-400">
-                Premium-Nutzer können jederzeit zusätzliche Bewertungen kaufen – ohne Monatsreset abzuwarten.
-                Flexibel, günstig, sofort verfügbar.
-              </p>
-            </div>
-            <div className="flex flex-col items-start gap-3 sm:items-end">
-              <div className="rounded-xl border border-violet-500/30 bg-white px-6 py-4 text-center dark:bg-white/[0.03]">
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">€0,20</p>
-                <p className="mt-0.5 text-xs text-gray-500 dark:text-slate-500">10er-Pack Bewertungen</p>
-              </div>
-              <p className="text-xs text-violet-500 dark:text-violet-400">Nur für Premium · via Stripe</p>
-            </div>
-          </div>
+      {/* ── FAQ (untouched) ── */}
+      <div className="mx-auto max-w-5xl px-6 pb-20">
+        <h2 className="mb-8 text-center text-2xl font-bold text-gray-900 dark:text-white">
+          Häufige Fragen
+        </h2>
+        <div className="mx-auto max-w-2xl divide-y divide-gray-100 rounded-2xl border border-gray-100 bg-white px-6 dark:divide-white/5 dark:border-white/10 dark:bg-surface">
+          {faqs.map((faq) => (
+            <FaqItem key={faq.q} q={faq.q} a={faq.a} />
+          ))}
         </div>
+      </div>
 
-        {/* ── FAQ ── */}
-        <div className="mb-20">
-          <h2 className="mb-8 text-center text-2xl font-bold text-gray-900 dark:text-white">
-            Häufige Fragen
-          </h2>
-          <div className="mx-auto max-w-2xl divide-y divide-gray-100 rounded-2xl border border-gray-100 bg-white px-6 dark:divide-white/5 dark:border-white/10 dark:bg-surface">
-            {faqs.map((faq) => (
-              <FaqItem key={faq.q} q={faq.q} a={faq.a} />
-            ))}
-          </div>
-        </div>
-
-        {/* ── Footer CTA ── */}
+      {/* ── Footer CTA (untouched) ── */}
+      <div className="mx-auto max-w-5xl px-6 pb-20">
         <div className="rounded-2xl border border-gray-100 bg-gray-50 px-8 py-12 text-center dark:border-white/10 dark:bg-white/[0.02]">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">Bereit anzufangen?</h2>
           <p className="mt-2 text-sm text-gray-500 dark:text-slate-400">
@@ -287,8 +359,8 @@ export default function Pricing() {
             </Link>
           </div>
         </div>
-
       </div>
+
     </div>
   )
 }
