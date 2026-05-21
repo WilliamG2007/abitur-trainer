@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import PricingToggle, { type Period, PERIOD_META } from '../components/PricingToggle'
@@ -38,7 +38,6 @@ function fmtEur(n: number): string {
 
 interface ComputedPrice {
   totalDisplay: string
-  perMonthDisplay: string
   savedDisplay: string | null
   discPct: number
 }
@@ -48,7 +47,6 @@ function computePrice(baseMonthly: number, period: Period): ComputedPrice {
   if (period === 'monthly') {
     return {
       totalDisplay: fmtEur(baseMonthly),
-      perMonthDisplay: fmtEur(baseMonthly) + '/Monat',
       savedDisplay: null,
       discPct: 0,
     }
@@ -58,10 +56,49 @@ function computePrice(baseMonthly: number, period: Period): ComputedPrice {
   const saved = baseMonthly * months - total
   return {
     totalDisplay: fmtEur(total),
-    perMonthDisplay: '',
     savedDisplay: fmtEur(Math.max(0, saved)),
     discPct,
   }
+}
+
+// ── Particles (Unlimited intro) ───────────────────────────────────────────────
+
+const PARTICLE_COLORS = ['#e879f9', '#ec4899', '#a855f7', '#f472b6', '#c084fc']
+const PARTICLES = [
+  { id: 0,  left: '8%',  bottom: '18%', delay: '0.00s', size: 4, dur: '1.10s' },
+  { id: 1,  left: '18%', bottom: '12%', delay: '0.18s', size: 3, dur: '0.90s' },
+  { id: 2,  left: '30%', bottom: '28%', delay: '0.32s', size: 5, dur: '1.20s' },
+  { id: 3,  left: '45%', bottom: '8%',  delay: '0.07s', size: 4, dur: '1.00s' },
+  { id: 4,  left: '60%', bottom: '22%', delay: '0.22s', size: 3, dur: '0.85s' },
+  { id: 5,  left: '72%', bottom: '32%', delay: '0.42s', size: 5, dur: '1.15s' },
+  { id: 6,  left: '85%', bottom: '14%', delay: '0.12s', size: 4, dur: '1.00s' },
+  { id: 7,  left: '92%', bottom: '24%', delay: '0.38s', size: 3, dur: '0.90s' },
+  { id: 8,  left: '25%', bottom: '42%', delay: '0.52s', size: 4, dur: '1.10s' },
+  { id: 9,  left: '55%', bottom: '36%', delay: '0.28s', size: 3, dur: '0.95s' },
+  { id: 10, left: '70%', bottom: '8%',  delay: '0.48s', size: 5, dur: '1.20s' },
+  { id: 11, left: '40%', bottom: '30%', delay: '0.62s', size: 3, dur: '0.80s' },
+]
+
+function ParticleBurst() {
+  return (
+    <>
+      {PARTICLES.map((p) => (
+        <span
+          key={p.id}
+          className="pointer-events-none absolute rounded-full"
+          style={{
+            left: p.left,
+            bottom: p.bottom,
+            width: p.size,
+            height: p.size,
+            background: PARTICLE_COLORS[p.id % PARTICLE_COLORS.length],
+            animation: `float-particle ${p.dur} ${p.delay} ease-out infinite`,
+            boxShadow: `0 0 ${p.size * 2}px ${PARTICLE_COLORS[p.id % PARTICLE_COLORS.length]}`,
+          }}
+        />
+      ))}
+    </>
+  )
 }
 
 // ── Tier data ─────────────────────────────────────────────────────────────────
@@ -82,11 +119,11 @@ const TIERS: Tier[] = [
     id: 'free',
     label: 'Kostenlos',
     accent: {
-      border:   'border-gray-200 dark:border-white/10',
+      border:   'border-gray-300 dark:border-white/20',
       glow:     '',
       badge:    '',
       label:    'text-gray-400 dark:text-slate-500',
-      cta:      'border border-gray-200 dark:border-white/10',
+      cta:      'border border-gray-200 dark:border-white/15',
       ctaHover: 'hover:bg-gray-50 dark:hover:bg-white/5',
       ctaText:  'text-gray-700 dark:text-slate-300',
     },
@@ -147,10 +184,11 @@ const TIERS: Tier[] = [
   {
     id: 'ultra',
     label: 'Ultra',
+    badge: 'Beste Leistung',
     accent: {
-      border:   'border-purple-500/50 dark:border-purple-500/40',
-      glow:     'shadow-lg shadow-purple-500/10',
-      badge:    '',
+      border:   'border-purple-500',
+      glow:     'shadow-xl shadow-purple-500/20',
+      badge:    'bg-purple-600 text-white',
       label:    'text-purple-500 dark:text-purple-400',
       cta:      'bg-purple-600',
       ctaHover: 'hover:bg-purple-500',
@@ -193,15 +231,33 @@ const TIERS: Tier[] = [
 
 // ── Plan card ─────────────────────────────────────────────────────────────────
 
-function PlanCard({ tier, period }: { tier: Tier; period: Period }) {
+type UnlimitedPhase = 'burst' | 'settled'
+
+function PlanCard({
+  tier,
+  period,
+  unlimitedPhase,
+  noBorder,
+}: {
+  tier: Tier
+  period: Period
+  unlimitedPhase?: UnlimitedPhase
+  noBorder?: boolean
+}) {
   const { user } = useAuth()
   const dest = user ? '/math' : '/register'
   const isFree = tier.baseMonthly === null
   const price = isFree ? null : computePrice(tier.baseMonthly!, period)
   const a = tier.accent
 
+  const isUnlimited = !!unlimitedPhase
+  const borderClass = noBorder ? '' : `border ${a.border}`
+  const glowClass   = noBorder ? '' : a.glow
+
   return (
-    <div className={`flex h-full flex-col rounded-2xl border bg-white transition-all duration-200 dark:bg-surface ${a.border} ${a.glow} relative overflow-hidden`}>
+    <div
+      className={`flex h-full flex-col rounded-2xl bg-white transition-all duration-200 dark:bg-surface ${borderClass} ${glowClass} relative overflow-hidden`}
+    >
       {/* Badge */}
       {tier.badge && (
         <span className={`absolute right-4 top-4 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider shadow ${a.badge}`}>
@@ -225,14 +281,38 @@ function PlanCard({ tier, period }: { tier: Tier; period: Period }) {
           ) : period === 'monthly' ? (
             <>
               <div className="flex items-baseline gap-0.5">
-                <span className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white">{price!.totalDisplay}</span>
+                <span
+                  className="text-4xl font-bold tracking-tight"
+                  style={isUnlimited ? {
+                    background: 'linear-gradient(90deg,#e879f9,#ec4899,#a855f7,#e879f9)',
+                    backgroundSize: '200% auto',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                    animation: 'gradient-shift 2s ease infinite',
+                  } : { color: undefined }}
+                >
+                  {price!.totalDisplay}
+                </span>
               </div>
               <p className="mt-1 text-xs text-gray-400 dark:text-slate-500">/Monat</p>
             </>
           ) : (
             <>
               <div className="flex items-baseline gap-1.5">
-                <span className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white">{price!.totalDisplay}</span>
+                <span
+                  className="text-4xl font-bold tracking-tight"
+                  style={isUnlimited ? {
+                    background: 'linear-gradient(90deg,#e879f9,#ec4899,#a855f7,#e879f9)',
+                    backgroundSize: '200% auto',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                    animation: 'gradient-shift 2s ease infinite',
+                  } : { color: undefined }}
+                >
+                  {price!.totalDisplay}
+                </span>
               </div>
               {price!.savedDisplay && (
                 <p className="mt-1.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
@@ -266,9 +346,18 @@ function PlanCard({ tier, period }: { tier: Tier; period: Period }) {
         {/* CTA */}
         <Link
           to={dest}
-          className={`mt-6 block rounded-xl py-2.5 text-center text-sm font-semibold transition-all duration-150 ${a.cta} ${a.ctaHover} ${a.ctaText}`}
+          className={`mt-6 block rounded-xl py-2.5 text-center text-sm font-semibold transition-all duration-150 ${a.cta} ${a.ctaHover} ${a.ctaText} relative overflow-hidden`}
         >
           {tier.ctaLabel}
+          {isUnlimited && (
+            <span
+              className="pointer-events-none absolute inset-0"
+              style={{
+                background: 'linear-gradient(105deg,transparent 40%,rgba(255,255,255,0.28) 50%,transparent 60%)',
+                animation: 'shimmer-slide 2.4s ease-in-out infinite',
+              }}
+            />
+          )}
         </Link>
       </div>
     </div>
@@ -364,6 +453,63 @@ const faqs = [
 
 export default function Pricing() {
   const [period, setPeriod] = useState<Period>('monthly')
+  const [unlimitedPhase, setUnlimitedPhase] = useState<UnlimitedPhase>('burst')
+
+  const scrollRef   = useRef<HTMLDivElement>(null)
+  const unlimitedRef = useRef<HTMLDivElement>(null)
+
+  // Custom eased scroll — much smoother than browser scrollTo 'smooth'
+  function easedScrollX(el: HTMLElement, to: number, duration: number, onDone?: () => void) {
+    const from = el.scrollLeft
+    const dist = to - from
+    const t0 = performance.now()
+    function tick(now: number) {
+      const p = Math.min((now - t0) / duration, 1)
+      // ease in-out cubic
+      const e = p < 0.5 ? 4 * p ** 3 : 1 - (-2 * p + 2) ** 3 / 2
+      el.scrollLeft = from + dist * e
+      if (p < 1) requestAnimationFrame(tick)
+      else onDone?.()
+    }
+    requestAnimationFrame(tick)
+  }
+
+  function easedScrollY(to: number, duration: number, onDone?: () => void) {
+    const from = window.scrollY
+    const dist = to - from
+    const t0 = performance.now()
+    function tick(now: number) {
+      const p = Math.min((now - t0) / duration, 1)
+      const e = p < 0.5 ? 4 * p ** 3 : 1 - (-2 * p + 2) ** 3 / 2
+      window.scrollTo(0, from + dist * e)
+      if (p < 1) requestAnimationFrame(tick)
+      else onDone?.()
+    }
+    requestAnimationFrame(tick)
+  }
+
+  // On mount: scroll down to show cards, then pan right to Unlimited
+  useEffect(() => {
+    const t0 = setTimeout(() => {
+      const el = scrollRef.current
+      if (!el) return
+
+      // 1. Gently scroll the page down so title + full cards are visible
+      const cardTop = el.getBoundingClientRect().top + window.scrollY
+      const targetY = Math.max(0, cardTop - window.innerHeight * 0.15)
+      easedScrollY(targetY, 800, () => {
+        // 2. After page settles, pan right to Unlimited
+        if (!scrollRef.current) return
+        const hEl = scrollRef.current
+        easedScrollX(hEl, 99999, 2400, () => {})
+      })
+    }, 500)
+
+    const t1 = setTimeout(() => setUnlimitedPhase('settled'), 3500)
+
+    return () => { clearTimeout(t0); clearTimeout(t1) }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <div className="min-h-screen bg-white dark:bg-[#0d0f18]">
@@ -381,30 +527,64 @@ export default function Pricing() {
       </div>
 
       {/* ── Period toggle ── */}
-      <div className="flex justify-center px-6 pb-10">
+      <div className="flex justify-center px-6 pb-5">
         <PricingToggle period={period} onChange={setPeriod} />
       </div>
 
-      {/* ── Cards — horizontal scroll, same height ── */}
+      {/* ── Cards — horizontal scroll, same height, equal margins ── */}
       <div
-        className="pricing-scroll flex items-stretch gap-5 overflow-x-auto px-6 pb-6"
-        style={{ scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' }}
+        ref={scrollRef}
+        className="pricing-scroll overflow-x-auto pt-10 pb-8"
+        style={{ display: 'grid', gridAutoFlow: 'column', gridAutoColumns: '256px', gap: '20px', WebkitOverflowScrolling: 'touch' }}
       >
-        {/* Left spacer so first card isn't flush against edge on wide screens */}
-        <div className="shrink-0" style={{ width: 'max(0px, calc((100vw - 1280px) / 2))' }} />
 
-        {TIERS.map((tier) => (
-          <div
-            key={tier.id}
-            className="shrink-0 w-64"
-            style={{ scrollSnapAlign: 'start' }}
-          >
-            <PlanCard tier={tier} period={period} />
-          </div>
-        ))}
+        {TIERS.map((tier) => {
+          const isUnlimited = tier.id === 'unlimited'
+          return (
+            <div
+              key={tier.id}
+              ref={isUnlimited ? unlimitedRef : undefined}
+              className="relative"
+              style={{
+                width: '256px',
+                flexShrink: 0,
+                ...(isUnlimited ? {
+                  borderRadius: '1rem',
+                  animation: 'unlimited-glow 1.5s ease-in-out infinite',
+                } : {}),
+              }}
+            >
+              {isUnlimited && (
+                <>
+                  {/* Gradient border ring — inset:-2px floats it outside the card, overflow:hidden clips the spinner to that ring */}
+                  <div style={{ position: 'absolute', inset: '-2px', borderRadius: '1rem', overflow: 'hidden', zIndex: 0 }}>
+                    <div style={{
+                      position: 'absolute',
+                      inset: '-100%',
+                      background: 'conic-gradient(from 0deg, #e879f9, #ffffff, #ec4899, #8b5cf6, #7c3aed, #a78bfa, #f472b6, rgba(255,255,255,0.7), #e879f9)',
+                      animation: `spin ${unlimitedPhase === 'burst' ? '1.2s' : '3.5s'} linear infinite`,
+                      opacity: unlimitedPhase === 'settled' ? 1 : 0,
+                      transition: 'opacity 1.4s ease',
+                    }} />
+                  </div>
+                  {/* Particles */}
+                  {unlimitedPhase === 'burst' && <ParticleBurst />}
+                </>
+              )}
 
-        {/* Right spacer */}
-        <div className="shrink-0" style={{ width: 'max(0px, calc((100vw - 1280px) / 2))' }} />
+              {/* Card — full w-64, sits on top of the border ring */}
+              <div style={isUnlimited ? { position: 'relative', zIndex: 1, height: '100%' } : { height: '100%' }}>
+                <PlanCard
+                  tier={tier}
+                  period={period}
+                  unlimitedPhase={isUnlimited ? unlimitedPhase : undefined}
+                  noBorder={isUnlimited}
+                />
+              </div>
+            </div>
+          )
+        })}
+
       </div>
 
       {/* ── Extra credits ── */}

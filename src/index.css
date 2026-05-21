@@ -16,10 +16,33 @@ html {
   --color-base: #0f1117;
 }
 
+/* ── Unlimited card intro animations ─────────────────────────────────────── */
+@keyframes unlimited-glow {
+  0%, 100% { box-shadow: 0 0 24px 5px rgba(232,121,249,0.55), 0 0 70px 10px rgba(168,85,247,0.18); }
+  50%       { box-shadow: 0 0 38px 8px rgba(236,72,153,0.65), 0 0 100px 16px rgba(232,121,249,0.12); }
+}
+@keyframes float-particle {
+  0%   { transform: translateY(0px) scale(1);    opacity: 0.9; }
+  100% { transform: translateY(-120px) scale(0); opacity: 0;   }
+}
+@keyframes gradient-shift {
+  0%   { background-position: 0%   50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0%   50%; }
+}
+@keyframes shimmer-slide {
+  from { transform: translateX(-150%); }
+  to   { transform: translateX(150%);  }
+}
+@keyframes spin {
+  to { transform: rotate(1turn); }
+}
+
 /* Themed slim scrollbar for pricing card row */
 .pricing-scroll {
   scrollbar-width: thin;
   scrollbar-color: rgba(99, 102, 241, 0.35) transparent;
+  padding-inline: max(24px, calc((100vw - 1280px) / 2));
 }
 .pricing-scroll::-webkit-scrollbar {
   height: 4px;
