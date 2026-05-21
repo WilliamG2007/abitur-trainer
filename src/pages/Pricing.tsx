@@ -55,11 +55,10 @@ function computePrice(baseMonthly: number, period: Period): ComputedPrice {
   }
   const raw = baseMonthly * months * (1 - discPct / 100)
   const total = roundDown(raw)
-  const perMonth = roundDown(total / months)
-  const saved = roundDown(baseMonthly * months) - total
+  const saved = baseMonthly * months - total
   return {
     totalDisplay: fmtEur(total),
-    perMonthDisplay: fmtEur(perMonth) + '/Monat',
+    perMonthDisplay: '',
     savedDisplay: fmtEur(Math.max(0, saved)),
     discPct,
   }
@@ -235,7 +234,6 @@ function PlanCard({ tier, period }: { tier: Tier; period: Period }) {
               <div className="flex items-baseline gap-1.5">
                 <span className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white">{price!.totalDisplay}</span>
               </div>
-              <p className="mt-1 text-xs text-gray-400 dark:text-slate-500">{price!.perMonthDisplay}</p>
               {price!.savedDisplay && (
                 <p className="mt-1.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
                   ↓ Sparen Sie {price!.discPct}% ({price!.savedDisplay})
