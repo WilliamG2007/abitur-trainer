@@ -27,10 +27,9 @@ function Chevron({ open }: { open: boolean }) {
 
 // ── Price computation ─────────────────────────────────────────────────────────
 
-function roundUp99(n: number): number {
-  // Ceil to nearest x.99
-  const floored = Math.floor(n)
-  return n <= floored + 0.99 ? floored + 0.99 : floored + 1.99
+function roundDown(n: number): number {
+  // Round down to nearest x.49 or x.99
+  return Math.floor(n * 2) / 2 - 0.01
 }
 
 function fmtEur(n: number): string {
@@ -55,9 +54,9 @@ function computePrice(baseMonthly: number, period: Period): ComputedPrice {
     }
   }
   const raw = baseMonthly * months * (1 - discPct / 100)
-  const total = roundUp99(raw)
-  const perMonth = Math.round((total / months) * 100) / 100
-  const saved = baseMonthly * months - total
+  const total = roundDown(raw)
+  const perMonth = roundDown(total / months)
+  const saved = roundDown(baseMonthly * months) - total
   return {
     totalDisplay: fmtEur(total),
     perMonthDisplay: fmtEur(perMonth) + '/Monat',
@@ -390,7 +389,7 @@ export default function Pricing() {
 
       {/* ── Cards — horizontal scroll, same height ── */}
       <div
-        className="flex items-stretch gap-5 overflow-x-auto px-6 pb-6"
+        className="pricing-scroll flex items-stretch gap-5 overflow-x-auto px-6 pb-6"
         style={{ scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' }}
       >
         {/* Left spacer so first card isn't flush against edge on wide screens */}

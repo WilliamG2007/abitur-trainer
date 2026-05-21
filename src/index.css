@@ -16,6 +16,25 @@ html {
   --color-base: #0f1117;
 }
 
+/* Themed slim scrollbar for pricing card row */
+.pricing-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(99, 102, 241, 0.35) transparent;
+}
+.pricing-scroll::-webkit-scrollbar {
+  height: 4px;
+}
+.pricing-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.pricing-scroll::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.35);
+  border-radius: 9999px;
+}
+.pricing-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.6);
+}
+
 @layer base {
   body {
     background-color: var(--color-base);
