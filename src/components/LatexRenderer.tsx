@@ -17,9 +17,10 @@ import katex from 'katex'
 
 // Custom macros used in Bayern Abitur LaTeX source files
 const KATEX_MACROS: Record<string, string> = {
-  '\\e':  'e',                  // \e^x  → e^x
-  '\\D':  '\\displaystyle',     // \D\frac → \displaystyle\frac
-  '\\m':  '\\mathrm{#1}',       // \m{f_a} → \mathrm{f_a}
+  '\\e':       'e',             // \e^x  → e^x
+  '\\D':       '\\displaystyle',// \D\frac → \displaystyle\frac
+  '\\m':       '\\mathrm{#1}',  // \m{f_a} → \mathrm{f_a}
+  '\\qpprox':  '\\approx',      // typo in some question sources
 }
 
 function renderKatex(s: string, display: boolean): string {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import PricingToggle, { type Period, PERIOD_META } from '../components/PricingToggle'
@@ -96,6 +96,69 @@ function ParticleBurst() {
             boxShadow: `0 0 ${p.size * 2}px ${PARTICLE_COLORS[p.id % PARTICLE_COLORS.length]}`,
           }}
         />
+      ))}
+    </>
+  )
+}
+
+function ScrollEndParticles({ rect }: { rect: DOMRect }) {
+  const particles = useMemo(() => {
+    const count = 24
+    const hw = rect.width / 2
+    const hh = rect.height / 2
+    return Array.from({ length: count }, (_, i) => {
+      const angle = (i / count) * Math.PI * 2 + (Math.random() - 0.5) * 0.3
+      const cos = Math.cos(angle)
+      const sin = Math.sin(angle)
+      const t = Math.min(Math.abs(hw / (Math.abs(cos) || 0.001)), Math.abs(hh / (Math.abs(sin) || 0.001)))
+      const size = 5 + Math.random() * 6
+      const dur = 0.8 + Math.random() * 0.4
+      return {
+        id: i,
+        // spawn on the card frame perimeter
+        x: rect.left + hw + cos * t,
+        y: rect.top + hh + sin * t,
+        // horizontal: spread outward from card centre
+        dx: cos * (35 + Math.random() * 55),
+        // vertical: all shoot upward then fall with gravity
+        peakUp: -(55 + Math.random() * 65),
+        fall: 40 + Math.random() * 55,
+        size,
+        delay: Math.random() * 0.1,
+        dur,
+        color: PARTICLE_COLORS[i % PARTICLE_COLORS.length],
+      }
+    })
+  }, [rect])
+
+  return (
+    <>
+      {particles.map((p) => (
+        // outer div: horizontal travel (ease-out = decelerates sideways)
+        <div
+          key={p.id}
+          className="pointer-events-none"
+          style={{
+            position: 'fixed',
+            left: p.x,
+            top: p.y,
+            zIndex: 9999,
+            '--dx': `${p.dx}px`,
+            animation: `particle-h ${p.dur}s ${p.delay}s ease-out forwards`,
+          } as React.CSSProperties}
+        >
+          {/* inner div: vertical arc (shoot up → fall, gravity easing) */}
+          <div style={{
+            width: p.size,
+            height: p.size,
+            background: p.color,
+            marginLeft: -p.size / 2,
+            marginTop: -p.size / 2,
+            '--peak-up': `${p.peakUp}px`,
+            '--fall': `${p.fall}px`,
+            animation: `particle-v ${p.dur}s ${p.delay}s linear forwards`,
+          } as React.CSSProperties} />
+        </div>
       ))}
     </>
   )
@@ -455,8 +518,13 @@ export default function Pricing() {
   const [period, setPeriod] = useState<Period>('monthly')
   const [unlimitedPhase, setUnlimitedPhase] = useState<UnlimitedPhase>('burst')
 
-  const scrollRef   = useRef<HTMLDivElement>(null)
-  const unlimitedRef = useRef<HTMLDivElement>(null)
+  const scrollRef       = useRef<HTMLDivElement>(null)
+  const unlimitedRef    = useRef<HTMLDivElement>(null)
+  const scrollEndTimer  = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const scrollHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [particleKey, setParticleKey] = useState(0)
+  const [particleRect, setParticleRect] = useState<DOMRect | null>(null)
+  const [showScrollParticles, setShowScrollParticles] = useState(false)
 
   // Custom eased scroll — much smoother than browser scrollTo 'smooth'
   function easedScrollX(el: HTMLElement, to: number, duration: number, onDone?: () => void) {
@@ -511,6 +579,43 @@ export default function Pricing() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Scroll-end particle burst from Unlimited card frame
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+
+    const fire = () => {
+      const uEl = unlimitedRef.current
+      if (!uEl) return
+      const rect = uEl.getBoundingClientRect()
+      if (rect.right <= 0 || rect.left >= window.innerWidth) return
+      if (scrollHideTimer.current) clearTimeout(scrollHideTimer.current)
+      setParticleRect(rect)
+      setParticleKey((k) => k + 1)
+      setShowScrollParticles(true)
+      scrollHideTimer.current = setTimeout(() => setShowScrollParticles(false), 1300)
+    }
+
+    const supportsScrollEnd = 'onscrollend' in window
+    const eventName = supportsScrollEnd ? 'scrollend' : 'scroll'
+
+    const onScroll = () => {
+      if (supportsScrollEnd) {
+        fire()
+      } else {
+        if (scrollEndTimer.current) clearTimeout(scrollEndTimer.current)
+        scrollEndTimer.current = setTimeout(fire, 50)
+      }
+    }
+
+    el.addEventListener(eventName, onScroll, { passive: true })
+    return () => {
+      el.removeEventListener(eventName, onScroll)
+      if (scrollEndTimer.current) clearTimeout(scrollEndTimer.current)
+      if (scrollHideTimer.current) clearTimeout(scrollHideTimer.current)
+    }
+  }, [])
+
   return (
     <div className="min-h-screen bg-white dark:bg-[#0d0f18]">
 
@@ -535,7 +640,7 @@ export default function Pricing() {
       <div
         ref={scrollRef}
         className="pricing-scroll overflow-x-auto pt-10 pb-8"
-        style={{ display: 'grid', gridAutoFlow: 'column', gridAutoColumns: '256px', gap: '20px', WebkitOverflowScrolling: 'touch' }}
+        style={{ display: 'grid', gridAutoFlow: 'column', gridAutoColumns: 'clamp(260px, 78vw, 360px)', gap: '20px', WebkitOverflowScrolling: 'touch' }}
       >
 
         {TIERS.map((tier) => {
@@ -546,8 +651,6 @@ export default function Pricing() {
               ref={isUnlimited ? unlimitedRef : undefined}
               className="relative"
               style={{
-                width: '256px',
-                flexShrink: 0,
                 ...(isUnlimited ? {
                   borderRadius: '1rem',
                   animation: 'unlimited-glow 1.5s ease-in-out infinite',
@@ -586,6 +689,7 @@ export default function Pricing() {
         })}
 
       </div>
+      {showScrollParticles && particleRect && <ScrollEndParticles key={particleKey} rect={particleRect} />}
 
       {/* ── Extra credits ── */}
       <div className="px-6 py-16">

@@ -4,8 +4,10 @@ import { useAnalytics, SUBJECTS } from '../hooks/useAnalytics'
 import type { FilteredStats } from '../hooks/useAnalytics'
 import { useAttemptHistory } from '../hooks/useAttemptHistory'
 import type { AttemptEntry } from '../hooks/useAttemptHistory'
+import { useStarred } from '../hooks/useStarred'
 import { useTheme } from '../hooks/useTheme'
 import { TOPICS } from '../data/topics'
+import LatexRenderer from '../components/LatexRenderer'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
 } from 'recharts'
@@ -190,7 +192,15 @@ function scoreColor(score: number, max: number) {
   return 'text-red-500 dark:text-red-400'
 }
 
-function AttemptCard({ entry }: { entry: AttemptEntry }) {
+function AttemptCard({
+  entry,
+  isStarred,
+  onToggleStar,
+}: {
+  entry: AttemptEntry
+  isStarred: boolean
+  onToggleStar: () => void
+}) {
   const [expanded, setExpanded] = useState(false)
   const [showMusterloesung, setShowMusterloesung] = useState(false)
 
@@ -209,9 +219,12 @@ function AttemptCard({ entry }: { entry: AttemptEntry }) {
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-surface dark:border-white/10">
       {/* Collapsed header — always visible */}
-      <button
+      <div
+        role="button"
+        tabIndex={0}
         onClick={() => setExpanded((v) => !v)}
-        className="flex w-full items-start gap-4 p-4 text-left transition-colors hover:bg-gray-50 dark:hover:bg-white/[0.02]"
+        onKeyDown={(e) => e.key === 'Enter' && setExpanded((v) => !v)}
+        className="flex w-full cursor-pointer items-start gap-4 p-4 transition-colors hover:bg-gray-50 dark:hover:bg-white/[0.02]"
       >
         {/* Solution thumbnail */}
         <div className="shrink-0">
@@ -236,7 +249,6 @@ function AttemptCard({ entry }: { entry: AttemptEntry }) {
 
         {/* Info */}
         <div className="flex min-w-0 flex-1 flex-col gap-1">
-          {/* Labels row */}
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500 dark:bg-white/5 dark:text-slate-500">
               {topicLabel}
@@ -249,16 +261,25 @@ function AttemptCard({ entry }: { entry: AttemptEntry }) {
             <span className="text-[10px] text-gray-300 dark:text-slate-700">·</span>
             <span className="text-[10px] text-gray-400 dark:text-slate-600">{date}</span>
           </div>
-          {/* Title */}
           <p className="truncate text-sm font-medium text-gray-900 dark:text-white">{displayTitle}</p>
-          {/* Score */}
-          <p className={`text-sm font-semibold ${sc}`}>
-            {entry.score} / {entry.maxScore} BE
-          </p>
+          <p className={`text-sm font-semibold ${sc}`}>{entry.score} / {entry.maxScore} BE</p>
         </div>
 
+        {/* Star button */}
+        <button
+          onClick={(e) => { e.stopPropagation(); onToggleStar() }}
+          title={isStarred ? 'Nicht mehr merken' : 'Merken'}
+          className={`shrink-0 text-xl leading-none transition-colors ${
+            isStarred
+              ? 'text-amber-400'
+              : 'text-gray-300 hover:text-amber-400 dark:text-slate-700 dark:hover:text-amber-400'
+          }`}
+        >
+          {isStarred ? '★' : '☆'}
+        </button>
+
         <Chevron open={expanded} />
-      </button>
+      </div>
 
       {/* Expanded body */}
       {expanded && (
@@ -267,7 +288,9 @@ function AttemptCard({ entry }: { entry: AttemptEntry }) {
           {entry.questionText && (
             <div>
               <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-slate-500">Aufgabe</p>
-              <p className="text-sm leading-relaxed text-gray-700 dark:text-slate-300">{entry.questionText}</p>
+              <div className="text-sm leading-relaxed text-gray-700 dark:text-slate-300">
+                <LatexRenderer>{entry.questionText}</LatexRenderer>
+              </div>
             </div>
           )}
 
@@ -312,9 +335,9 @@ function AttemptCard({ entry }: { entry: AttemptEntry }) {
                 Musterlösung ansehen
               </button>
               {showMusterloesung && (
-                <pre className="mt-2 whitespace-pre-wrap rounded-lg border border-indigo-500/20 bg-indigo-500/5 p-4 text-sm text-gray-700 dark:text-slate-300">
-                  {entry.erwartungshorizont}
-                </pre>
+                <div className="mt-2 rounded-lg border border-indigo-500/20 bg-indigo-500/5 p-4 text-sm leading-relaxed text-gray-700 dark:text-slate-300">
+                  <LatexRenderer>{entry.erwartungshorizont}</LatexRenderer>
+                </div>
               )}
             </div>
           )}
@@ -326,6 +349,62 @@ function AttemptCard({ entry }: { entry: AttemptEntry }) {
 
 function AttemptHistory() {
   const { attempts, loading, error } = useAttemptHistory()
+  const { isStarred, toggle: toggleStar } = useStarred()
+
+  const [topicFilter, setTopicFilter] = useState<string | null>(null)
+  const [subtopicFilter, setSubtopicFilter] = useState<string | null>(null)
+  const [bestOnly, setBestOnly] = useState(false)
+  const [starredOnly, setStarredOnly] = useState(false)
+
+  // Unique topics present in the user's attempts
+  const availableTopics = useMemo(() => {
+    const seen = new Set<string>()
+    const result: { id: string; label: string }[] = []
+    for (const a of attempts) {
+      if (a.topic && !seen.has(a.topic)) {
+        seen.add(a.topic)
+        result.push({ id: a.topic, label: TOPIC_LABELS[a.topic] ?? a.topic })
+      }
+    }
+    return result
+  }, [attempts])
+
+  // Unique subtopics for the selected topic
+  const availableSubtopics = useMemo(() => {
+    if (!topicFilter) return []
+    const seen = new Set<string>()
+    const result: { id: string; label: string }[] = []
+    for (const a of attempts) {
+      if (a.topic === topicFilter && a.subtopic && !seen.has(a.subtopic)) {
+        seen.add(a.subtopic)
+        result.push({ id: a.subtopic, label: SUBTOPIC_LABELS[a.subtopic] ?? a.subtopic })
+      }
+    }
+    return result
+  }, [attempts, topicFilter])
+
+  const filtered = useMemo(() => {
+    // Best-only: keep highest-percentage attempt per question
+    let base = attempts
+    if (bestOnly) {
+      const best: Record<string, AttemptEntry> = {}
+      for (const a of attempts) {
+        const pct = a.maxScore > 0 ? a.score / a.maxScore : 0
+        const prev = best[a.questionId]
+        const prevPct = prev ? (prev.maxScore > 0 ? prev.score / prev.maxScore : 0) : -1
+        if (!prev || pct > prevPct) best[a.questionId] = a
+      }
+      base = Object.values(best).sort(
+        (a, b) => new Date(b.attemptedAt).getTime() - new Date(a.attemptedAt).getTime()
+      )
+    }
+    return base.filter((a) => {
+      if (starredOnly && !isStarred(a.questionId)) return false
+      if (topicFilter && a.topic !== topicFilter) return false
+      if (subtopicFilter && a.subtopic !== subtopicFilter) return false
+      return true
+    })
+  }, [attempts, bestOnly, starredOnly, topicFilter, subtopicFilter, isStarred])
 
   if (loading) return (
     <div className="flex flex-col gap-3">
@@ -335,15 +414,118 @@ function AttemptHistory() {
     </div>
   )
   if (error) return <p className="text-sm text-red-500">{error}</p>
-  if (attempts.length === 0) return (
-    <p className="text-sm text-gray-400 dark:text-slate-500">Noch keine Versuche gespeichert.</p>
-  )
+
+  const chipBase = 'rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors'
+  const chipOff = 'border-gray-200 bg-white text-gray-500 hover:text-gray-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-500 dark:hover:text-slate-300'
 
   return (
-    <div className="flex flex-col gap-3">
-      {attempts.map((entry) => (
-        <AttemptCard key={entry.id} entry={entry} />
-      ))}
+    <div className="flex flex-col gap-4">
+      {/* ── Filter bar ── */}
+      <div className="flex flex-col gap-2.5 rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-white/10 dark:bg-white/[0.02]">
+        {/* Toggle chips */}
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setStarredOnly((v) => !v)}
+            className={`${chipBase} ${starredOnly
+              ? 'border-amber-300 bg-amber-100 text-amber-700 dark:border-amber-500/40 dark:bg-amber-500/20 dark:text-amber-400'
+              : chipOff}`}
+          >
+            ★ Gemerkt
+          </button>
+          <button
+            onClick={() => setBestOnly((v) => !v)}
+            className={`${chipBase} ${bestOnly
+              ? 'border-indigo-300 bg-indigo-100 text-indigo-700 dark:border-indigo-500/40 dark:bg-indigo-500/20 dark:text-indigo-400'
+              : chipOff}`}
+          >
+            Bester Versuch
+          </button>
+        </div>
+
+        {/* Topic pills */}
+        {availableTopics.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            <button
+              onClick={() => { setTopicFilter(null); setSubtopicFilter(null) }}
+              className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
+                !topicFilter
+                  ? 'bg-gray-200 text-gray-900 dark:bg-white/10 dark:text-white'
+                  : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-slate-500 dark:hover:bg-white/5 dark:hover:text-slate-300'
+              }`}
+            >
+              Alle Themen
+            </button>
+            {availableTopics.map((t) => {
+              const a = accent(t.id)
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => { setTopicFilter(t.id); setSubtopicFilter(null) }}
+                  className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
+                    topicFilter === t.id
+                      ? `${a.bg} ${a.text}`
+                      : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-slate-500 dark:hover:bg-white/5 dark:hover:text-slate-300'
+                  }`}
+                >
+                  {t.label}
+                </button>
+              )
+            })}
+          </div>
+        )}
+
+        {/* Subtopic pills — only when a topic is selected and has multiple subtopics */}
+        {topicFilter && availableSubtopics.length > 1 && (
+          <div className="flex flex-wrap gap-1.5">
+            <button
+              onClick={() => setSubtopicFilter(null)}
+              className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
+                !subtopicFilter
+                  ? 'bg-gray-200 text-gray-900 dark:bg-white/10 dark:text-white'
+                  : 'text-gray-500 hover:bg-gray-100 dark:text-slate-500 dark:hover:bg-white/5'
+              }`}
+            >
+              Alle Unterthemen
+            </button>
+            {availableSubtopics.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => setSubtopicFilter(s.id)}
+                className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
+                  subtopicFilter === s.id
+                    ? 'bg-gray-200 text-gray-900 dark:bg-white/10 dark:text-white'
+                    : 'text-gray-500 hover:bg-gray-100 dark:text-slate-500 dark:hover:bg-white/5'
+                }`}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Results */}
+      {attempts.length === 0 ? (
+        <p className="text-sm text-gray-400 dark:text-slate-500">Noch keine Versuche gespeichert.</p>
+      ) : filtered.length === 0 ? (
+        <p className="text-sm text-gray-400 dark:text-slate-500">Keine Aufgaben für diese Filter.</p>
+      ) : (
+        <>
+          <p className="text-xs text-gray-400 dark:text-slate-600">
+            {filtered.length} {filtered.length === 1 ? 'Versuch' : 'Versuche'}
+          </p>
+          <div className="flex flex-col gap-3">
+            {filtered.map((entry) => (
+              <AttemptCard
+                key={entry.id}
+                entry={entry}
+                isStarred={isStarred(entry.questionId)}
+                onToggleStar={() => toggleStar(entry.questionId)}
+              />
+            ))}
+          </div>
+        </>
+      )}
     </div>
   )
 }

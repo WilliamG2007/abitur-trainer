@@ -6,7 +6,9 @@
       "Read(//c/Users/willi/Downloads/**)",
       "Bash(unzip -o \"SMART \\(3\\).zip\" -d SMART4_extracted)",
       "Bash(ls SMART4_extracted/*.png)",
-      "Bash(python scripts/clean_and_insert.py \"C:/Users/willi/Downloads/questions_clean_sine_cosine.json\")"
+      "Bash(python scripts/clean_and_insert.py \"C:/Users/willi/Downloads/questions_clean_sine_cosine.json\")",
+      "Bash(ipconfig)",
+      "Bash(findstr \"IPv4\")"
     ]
   }
 }

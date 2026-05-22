@@ -37,6 +37,15 @@ html {
 @keyframes spin {
   to { transform: rotate(1turn); }
 }
+@keyframes particle-h {
+  from { transform: translateX(0); }
+  to   { transform: translateX(var(--dx)); }
+}
+@keyframes particle-v {
+  0%   { animation-timing-function: ease-out; transform: translateY(0)             rotate(45deg)  scale(1);   opacity: 1; }
+  35%  { animation-timing-function: ease-in;  transform: translateY(var(--peak-up)) rotate(225deg) scale(0.9); opacity: 1; }
+  100% {                                       transform: translateY(var(--fall))    rotate(405deg) scale(0.2); opacity: 0; }
+}
 
 /* Themed slim scrollbar for pricing card row */
 .pricing-scroll {
